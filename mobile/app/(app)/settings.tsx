@@ -1,13 +1,15 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
 import { useAuth } from "../../src/hooks/useAuth";
 import { useProfile } from "../../src/hooks/useProfile";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { profile } = useProfile(user?.id);
+  const router = useRouter();
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.card}>
         <Text style={styles.label}>Display name</Text>
         <Text style={styles.value}>{profile?.display_name ?? "—"}</Text>
@@ -17,6 +19,38 @@ export default function SettingsScreen() {
         <Text style={styles.label}>Account</Text>
         <Text style={styles.value}>{user?.email ?? "—"}</Text>
       </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Support & Safety</Text>
+      </View>
+
+      <TouchableOpacity
+        style={styles.linkRow}
+        onPress={() => router.push("/(app)/crisis")}
+      >
+        <Text style={styles.linkText}>Crisis resources</Text>
+        <Text style={styles.linkArrow}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.linkRow}
+        onPress={() => router.push("/(app)/guidelines")}
+      >
+        <Text style={styles.linkText}>Community guidelines</Text>
+        <Text style={styles.linkArrow}>›</Text>
+      </TouchableOpacity>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Privacy</Text>
+      </View>
+
+      <TouchableOpacity
+        style={styles.linkRow}
+        onPress={() => router.push("/(app)/my-data")}
+      >
+        <Text style={styles.linkText}>Your data</Text>
+        <Text style={styles.linkArrow}>›</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.dangerButton}
@@ -37,7 +71,7 @@ export default function SettingsScreen() {
       <Text style={styles.footer}>
         If you're in crisis, call or text 988.
       </Text>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -45,8 +79,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FAFAF9",
+  },
+  content: {
     paddingHorizontal: 16,
     paddingTop: 16,
+    paddingBottom: 40,
   },
   card: {
     backgroundColor: "#fff",
@@ -65,13 +102,43 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: "#1C1917",
   },
+  sectionHeader: {
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#78716C",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  linkRow: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E7E5E4",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  linkText: {
+    fontSize: 16,
+    color: "#1C1917",
+  },
+  linkArrow: {
+    fontSize: 20,
+    color: "#A8A29E",
+  },
   dangerButton: {
     borderWidth: 1,
     borderColor: "#FCA5A5",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
-    marginTop: 24,
+    marginTop: 28,
   },
   dangerText: {
     color: "#DC2626",

@@ -18,6 +18,9 @@ export default function AppLayout() {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="settings" options={{ title: "Settings" }} />
+      <Stack.Screen name="crisis" options={{ title: "Crisis Resources" }} />
+      <Stack.Screen name="guidelines" options={{ title: "Guidelines" }} />
+      <Stack.Screen name="my-data" options={{ title: "Your Data" }} />
     </Stack>
   );
 }
