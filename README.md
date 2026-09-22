@@ -30,6 +30,7 @@ Full statement, including the limits of the claim: [docs/ACCESS_POLICY.md](docs/
 
 ## Stack
 
-Next.js (App Router) on Vercel · Supabase for Postgres, auth, storage, realtime.
-Conversations are encrypted in transit and at rest, not end-to-end — the
-reasoning is in DECISIONS.md D1.
+iOS app via React Native (Expo, TypeScript) · Admin console via Next.js on
+Vercel · Supabase for Postgres, auth, storage, realtime. Conversations are
+encrypted in transit and at rest, not end-to-end — the reasoning is in
+DECISIONS.md D1.

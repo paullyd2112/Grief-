@@ -118,6 +118,9 @@ select pg_temp.check('the notice goes to the other party',
   (select recipient_id from public.match_end_notices
     where match_id = 'aaaaaaaa-0000-0000-0000-000000000002')
     = '44444444-4444-4444-4444-444444444444');
+select pg_temp.check('the notice captures the leaver name',
+  (select leaver_name from public.match_end_notices
+    where match_id = 'aaaaaaaa-0000-0000-0000-000000000002') = 'alex');
 
 -- 8. Deleting a conversation removes content for BOTH parties.
 set role authenticated;

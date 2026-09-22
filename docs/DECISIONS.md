@@ -54,8 +54,21 @@ cannot teach someone the right answer by letting them retry. Self-attested; a
 liability boundary, not verification.
 
 ### D6. Stack
-**Decided.** Next.js (App Router, TypeScript) on Vercel, Supabase for Postgres /
-auth / storage / realtime. Both vendors offer a DPA.
+**Decided.** iOS-primary via React Native (Expo) with a shared TypeScript
+codebase. Supabase for Postgres, auth, storage, and realtime. Next.js on Vercel
+for the marketing/landing page and the admin matching console. Both vendors
+offer a DPA.
+
+The user-facing product is a native iOS app. React Native / Expo gives iOS now,
+Android later, and a web fallback — all from one codebase. The voice memo
+hold-to-record gesture and push notifications both work dramatically better
+native than in a browser.
+
+### D11. Departure notice wording
+**Decided.** When someone leaves a conversation normally, the other person sees:
+"This user left the conversation." Paired with a reframe ("People step back for
+their own reasons — it isn't about you") and a prompt to get matched with
+someone new. Report-and-leave is still silent — no notice of any kind.
 
 ### D7. Voice interaction model
 **Decided.** Instagram DM model — hold to record, live waveform, release to

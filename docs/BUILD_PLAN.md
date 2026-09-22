@@ -7,12 +7,24 @@ in DECISIONS.md; the access commitment lives in ACCESS_POLICY.md.
 |---|---|---|
 | 0 | Decisions: access policy, retention, identity model, stack | **done** |
 | 1 | Schema, RLS, safety state machine, access-policy test suite | **done** |
-| 1b | Next.js app, auth, age gate | next |
-| 2 | Intake form + admin matching console — **goes live before messaging** | |
+| 1b | Expo/React Native app scaffold, auth, age gate | next |
+| 2a | Intake form (mobile) — **goes live before messaging** | |
+| 2b | Admin matching console (Next.js on Vercel) | |
 | 3 | 1:1 messaging, report / block / end-match, delete-for-both | |
-| 4 | Voice memos (IG model), transcription for accessibility + triage | |
+| 4 | Voice memos (IG hold-to-record model), transcription | |
 | 5 | Crisis page, guidelines, access log UI, retention cron | |
-| 6 | Stripe, 60-day trial, cancel/pause, hardship path | |
+| 6 | Stripe / RevenueCat, 60-day trial, cancel/pause, hardship path | |
+
+## Architecture
+
+Two apps, one Supabase backend:
+
+- **iOS app** (React Native / Expo, TypeScript) — the product. Auth, intake,
+  messaging, voice memos, push notifications. Primary surface.
+- **Admin console** (Next.js on Vercel) — matching queue, side-by-side compare,
+  report review, access log. Paul-only. Also hosts the marketing landing page.
+
+Both share the same Supabase project, the same RLS, and the same types.
 
 ## Sequencing note
 

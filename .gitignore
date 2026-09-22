@@ -1,0 +1,14 @@
+
+# Environment
+.env
+.env.local
+mobile/.env
+
+# Node
+node_modules/
+
+# Expo
+mobile/.expo/
+mobile/dist/
+mobile/ios/
+mobile/android/

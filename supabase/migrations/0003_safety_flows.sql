@@ -4,11 +4,16 @@
 -- departure sends a neutral notice. A report-and-leave sends NOTHING: notifying
 -- a predatory account that it was reported tells it to adjust and try again.
 
--- Neutral notices only. No row is ever written for a report-and-leave.
+-- Departure notices. No row is ever written for a report-and-leave.
+-- Normal departure: "This user left the conversation." + reframe + re-match prompt.
+-- Report-and-leave: NOTHING. Silent. No notice of any kind.
 create table public.match_end_notices (
   id           uuid primary key default gen_random_uuid(),
   recipient_id uuid not null references public.profiles(id) on delete cascade,
   match_id     uuid not null references public.matches(id) on delete cascade,
+  -- The display_name of the person who left, captured at departure time so it
+  -- survives if the leaver later changes their name or deletes their account.
+  leaver_name  text not null,
   created_at   timestamptz not null default now(),
   seen_at      timestamptz
 );
@@ -64,7 +69,13 @@ begin
 
   -- Silent departures notify nobody. That is the whole point.
   if not silent then
-    insert into public.match_end_notices (recipient_id, match_id) values (other, m_id);
+    insert into public.match_end_notices (recipient_id, match_id, leaver_name)
+    select other, m_id, p.display_name
+      from public.profiles p where p.id = auth.uid();
+    -- The app renders this as:
+    --   "<leaver_name> left the conversation."
+    --   "People step back for their own reasons — it isn't about you."
+    --   [Get matched with someone new]
   end if;
 end;
 $$;
