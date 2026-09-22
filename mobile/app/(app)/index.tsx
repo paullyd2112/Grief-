@@ -17,6 +17,7 @@ interface ConversationItem {
   id: string;
   matchId: string;
   partnerName: string;
+  lastMessage: string | null;
   lastMessageAt: string | null;
 }
 
@@ -68,11 +69,23 @@ export default function HomeScreen() {
             .select("display_name")
             .eq("id", partnerId)
             .single();
+          const { data: lastMsg } = await supabase
+            .from("messages")
+            .select("body, kind, created_at")
+            .eq("conversation_id", conv.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
           items.push({
             id: conv.id,
             matchId: match.id,
             partnerName: partner?.display_name ?? "Someone",
-            lastMessageAt: null,
+            lastMessage: lastMsg
+              ? lastMsg.kind === "voice"
+                ? "Voice memo"
+                : lastMsg.body
+              : null,
+            lastMessageAt: lastMsg?.created_at ?? null,
           });
         }
         setConversations(items);
@@ -168,7 +181,14 @@ export default function HomeScreen() {
                 router.push(`/(app)/conversations/${item.id}`)
               }
             >
-              <Text style={styles.convName}>{item.partnerName}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.convName}>{item.partnerName}</Text>
+                {item.lastMessage && (
+                  <Text style={styles.convPreview} numberOfLines={1}>
+                    {item.lastMessage}
+                  </Text>
+                )}
+              </View>
               <Text style={styles.convArrow}>›</Text>
             </TouchableOpacity>
           )}
@@ -285,6 +305,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "500",
     color: "#1C1917",
+  },
+  convPreview: {
+    fontSize: 14,
+    color: "#78716C",
+    marginTop: 2,
   },
   convArrow: {
     fontSize: 22,
