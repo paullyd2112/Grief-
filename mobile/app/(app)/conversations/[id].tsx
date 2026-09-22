@@ -407,12 +407,12 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   bubbleOwn: {
-    backgroundColor: "#1C1917",
+    backgroundColor: "#3B82F6",
     alignSelf: "flex-end",
     borderBottomRightRadius: 4,
   },
   bubbleTheirs: {
-    backgroundColor: "#E7E5E4",
+    backgroundColor: "#E5E7EB",
     alignSelf: "flex-start",
     borderBottomLeftRadius: 4,
   },
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   textOwn: {
-    color: "#FAFAF9",
+    color: "#FFFFFF",
   },
   textTheirs: {
     color: "#1C1917",
@@ -431,11 +431,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tsOwn: {
-    color: "#A8A29E",
+    color: "rgba(255,255,255,0.7)",
     textAlign: "right",
   },
   tsTheirs: {
-    color: "#78716C",
+    color: "#6B7280",
   },
   emptyContainer: {
     paddingVertical: 40,
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendButton: {
-    backgroundColor: "#1C1917",
+    backgroundColor: "#3B82F6",
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 10,
