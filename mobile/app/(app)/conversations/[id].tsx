@@ -16,9 +16,18 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useAuth } from "../../../src/hooks/useAuth";
 import { useMessages } from "../../../src/hooks/useMessages";
 import { useConversation } from "../../../src/hooks/useConversation";
+import { useVoiceMemo } from "../../../src/hooks/useVoiceMemo";
 import { containsContactInfo } from "../../../src/lib/contact-detect";
+import { VoiceBubble } from "../../../src/components/VoiceBubble";
 import { supabase } from "../../../src/lib/supabase";
 import type { Message } from "../../../src/lib/types";
+
+function formatRecordingTime(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, "0")}`;
+}
 
 function MessageBubble({
   message,
@@ -27,6 +36,17 @@ function MessageBubble({
   message: Message;
   isOwn: boolean;
 }) {
+  if (message.kind === "voice" && message.voice_memo_id) {
+    return (
+      <VoiceBubble
+        voiceMemoId={message.voice_memo_id}
+        durationMs={0}
+        isOwn={isOwn}
+        timestamp={message.created_at}
+      />
+    );
+  }
+
   return (
     <View
       style={[
@@ -109,6 +129,7 @@ export default function ConversationScreen() {
   const { user } = useAuth();
   const { info, loading: convLoading } = useConversation(id, user?.id);
   const { messages, loading: msgsLoading, sendMessage } = useMessages(id);
+  const voice = useVoiceMemo(id);
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -335,8 +356,46 @@ export default function ConversationScreen() {
           <View style={styles.endedBanner}>
             <Text style={styles.endedText}>This conversation has ended.</Text>
           </View>
+        ) : voice.recording ? (
+          <View style={styles.recordingBar}>
+            <View style={styles.recordingIndicator}>
+              <View style={styles.recordingDot} />
+              <Text style={styles.recordingTime}>
+                {formatRecordingTime(voice.durationMs)}
+              </Text>
+            </View>
+            <View style={styles.recordingActions}>
+              <TouchableOpacity
+                onPress={voice.cancelRecording}
+                style={styles.recordingCancelBtn}
+              >
+                <Text style={styles.recordingCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  await voice.stopRecording();
+                  if (user) await voice.sendVoiceMemo(user.id);
+                }}
+                style={styles.recordingStopBtn}
+              >
+                <Text style={styles.recordingStopText}>
+                  {voice.uploading ? "..." : "Send"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         ) : (
           <View style={styles.inputBar}>
+            <TouchableOpacity
+              onPress={voice.startRecording}
+              disabled={sending || voice.uploading}
+              style={[
+                styles.micButton,
+                (sending || voice.uploading) && styles.sendButtonDisabled,
+              ]}
+            >
+              <Text style={styles.micIcon}>🎤</Text>
+            </TouchableOpacity>
             <TextInput
               ref={inputRef}
               style={styles.input}
@@ -346,7 +405,7 @@ export default function ConversationScreen() {
               onChangeText={setText}
               multiline
               maxLength={2000}
-              editable={!sending}
+              editable={!sending && !voice.uploading}
             />
             <TouchableOpacity
               onPress={handleSend}
@@ -529,6 +588,69 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: "#fff",
     fontSize: 15,
+    fontWeight: "600",
+  },
+  micButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F4",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  micIcon: {
+    fontSize: 18,
+  },
+  recordingBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E7E5E4",
+    backgroundColor: "#FEF2F2",
+  },
+  recordingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#DC2626",
+  },
+  recordingTime: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#DC2626",
+    fontVariant: ["tabular-nums"],
+  },
+  recordingActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  recordingCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  recordingCancelText: {
+    fontSize: 15,
+    color: "#78716C",
+    fontWeight: "500",
+  },
+  recordingStopBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: "#3B82F6",
+  },
+  recordingStopText: {
+    fontSize: 15,
+    color: "#fff",
     fontWeight: "600",
   },
   modalOverlay: {
