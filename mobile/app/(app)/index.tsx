@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/hooks/useAuth";
 import { useProfile } from "../../src/hooks/useProfile";
-import type { Conversation, MatchEndNotice } from "../../src/lib/types";
+import type { MatchEndNotice } from "../../src/lib/types";
 
 interface ConversationItem {
   id: string;
@@ -23,18 +23,19 @@ interface ConversationItem {
 
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
-  const { profile } = useProfile(user?.id);
+  const { profile, refetch: refetchProfile } = useProfile(user?.id);
   const router = useRouter();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [notices, setNotices] = useState<MatchEndNotice[]>([]);
   const [hasIntake, setHasIntake] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const guidelinesAccepted = !!profile?.guidelines_accepted_at;
+
   useEffect(() => {
     if (!user) return;
 
     const loadData = async () => {
-      // Check if intake is done
       const { data: intake } = await supabase
         .from("intake_responses")
         .select("id")
@@ -43,7 +44,6 @@ export default function HomeScreen() {
 
       setHasIntake(!!intake);
 
-      // Fetch active conversations
       const { data: convs } = await supabase
         .from("conversation_participants")
         .select(`
@@ -91,7 +91,6 @@ export default function HomeScreen() {
         setConversations(items);
       }
 
-      // Unseen departure notices
       const { data: unseenNotices } = await supabase
         .from("match_end_notices")
         .select("*")
@@ -121,9 +120,11 @@ export default function HomeScreen() {
     );
   }
 
+  const isNewUser = !guidelinesAccepted || !hasIntake;
+
   return (
     <View style={styles.container}>
-      {/* Departure notices — D11 wording */}
+      {/* Departure notices */}
       {notices.map((notice) => (
         <View key={notice.id} style={styles.noticeCard}>
           <Text style={styles.noticeText}>
@@ -143,21 +144,124 @@ export default function HomeScreen() {
         </View>
       ))}
 
-      {/* Intake prompt */}
-      {hasIntake === false && (
-        <TouchableOpacity
-          style={styles.intakeCard}
-          onPress={() => router.push("/(app)/intake")}
-        >
-          <Text style={styles.intakeTitle}>Tell us about your loss</Text>
-          <Text style={styles.intakeSubtitle}>
-            So we can match you with someone who understands.
+      {/* New user onboarding */}
+      {isNewUser && (
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeTitle}>
+            Welcome{profile?.display_name ? `, ${profile.display_name}` : ""}
           </Text>
-        </TouchableOpacity>
+          <Text style={styles.welcomeBody}>
+            A couple of quick steps and we'll start looking for your match.
+          </Text>
+
+          {/* Step 1: Guidelines */}
+          <TouchableOpacity
+            style={[
+              styles.stepCard,
+              guidelinesAccepted && styles.stepCardDone,
+            ]}
+            onPress={() => {
+              if (!guidelinesAccepted) {
+                router.push("/(app)/guidelines");
+              }
+            }}
+            disabled={guidelinesAccepted}
+          >
+            <View style={styles.stepRow}>
+              <View
+                style={[
+                  styles.stepBadge,
+                  guidelinesAccepted && styles.stepBadgeDone,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.stepBadgeText,
+                    guidelinesAccepted && styles.stepBadgeTextDone,
+                  ]}
+                >
+                  {guidelinesAccepted ? "✓" : "1"}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.stepTitle,
+                    guidelinesAccepted && styles.stepTitleDone,
+                  ]}
+                >
+                  Read the community guidelines
+                </Text>
+                <Text style={styles.stepDesc}>
+                  {guidelinesAccepted
+                    ? "Done"
+                    : "The ground rules for every conversation"}
+                </Text>
+              </View>
+              {!guidelinesAccepted && (
+                <Text style={styles.stepArrow}>›</Text>
+              )}
+            </View>
+          </TouchableOpacity>
+
+          {/* Step 2: Intake */}
+          <TouchableOpacity
+            style={[
+              styles.stepCard,
+              !guidelinesAccepted && styles.stepCardLocked,
+              hasIntake && styles.stepCardDone,
+            ]}
+            onPress={() => {
+              if (guidelinesAccepted && !hasIntake) {
+                router.push("/(app)/intake");
+              }
+            }}
+            disabled={!guidelinesAccepted || !!hasIntake}
+          >
+            <View style={styles.stepRow}>
+              <View
+                style={[
+                  styles.stepBadge,
+                  hasIntake && styles.stepBadgeDone,
+                  !guidelinesAccepted && styles.stepBadgeLocked,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.stepBadgeText,
+                    hasIntake && styles.stepBadgeTextDone,
+                    !guidelinesAccepted && styles.stepBadgeTextLocked,
+                  ]}
+                >
+                  {hasIntake ? "✓" : "2"}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.stepTitle,
+                    !guidelinesAccepted && styles.stepTitleLocked,
+                    hasIntake && styles.stepTitleDone,
+                  ]}
+                >
+                  Tell us about your loss
+                </Text>
+                <Text style={styles.stepDesc}>
+                  {hasIntake
+                    ? "Done"
+                    : "So we can match you with someone who understands"}
+                </Text>
+              </View>
+              {guidelinesAccepted && !hasIntake && (
+                <Text style={styles.stepArrow}>›</Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
       )}
 
-      {/* Waiting state */}
-      {hasIntake === true && conversations.length === 0 && (
+      {/* Waiting state — only after both steps complete */}
+      {guidelinesAccepted && hasIntake && conversations.length === 0 && notices.length === 0 && (
         <View style={styles.waitingCard}>
           <Text style={styles.waitingTitle}>We're finding someone for you</Text>
           <Text style={styles.waitingBody}>
@@ -201,6 +305,10 @@ export default function HomeScreen() {
           <Text style={styles.footerLink}>Settings</Text>
         </TouchableOpacity>
         <Text style={styles.footerDivider}>·</Text>
+        <TouchableOpacity onPress={() => router.push("/(app)/crisis")}>
+          <Text style={styles.footerLink}>Crisis help</Text>
+        </TouchableOpacity>
+        <Text style={styles.footerDivider}>·</Text>
         <TouchableOpacity onPress={signOut}>
           <Text style={styles.footerLink}>Sign out</Text>
         </TouchableOpacity>
@@ -220,6 +328,86 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FAFAF9",
+  },
+  welcomeSection: {
+    marginTop: 16,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1C1917",
+    marginBottom: 4,
+  },
+  welcomeBody: {
+    fontSize: 15,
+    color: "#57534E",
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  stepCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#E7E5E4",
+  },
+  stepCardDone: {
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
+  },
+  stepCardLocked: {
+    opacity: 0.5,
+  },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  stepBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#1C1917",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepBadgeDone: {
+    backgroundColor: "#22C55E",
+  },
+  stepBadgeLocked: {
+    backgroundColor: "#D6D3D1",
+  },
+  stepBadgeText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  stepBadgeTextDone: {
+    color: "#fff",
+  },
+  stepBadgeTextLocked: {
+    color: "#fff",
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1C1917",
+  },
+  stepTitleDone: {
+    color: "#15803D",
+  },
+  stepTitleLocked: {
+    color: "#A8A29E",
+  },
+  stepDesc: {
+    fontSize: 13,
+    color: "#78716C",
+    marginTop: 2,
+  },
+  stepArrow: {
+    fontSize: 22,
+    color: "#A8A29E",
   },
   noticeCard: {
     backgroundColor: "#FEF3C7",
@@ -252,24 +440,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
-  },
-  intakeCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: "#E7E5E4",
-  },
-  intakeTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1C1917",
-    marginBottom: 4,
-  },
-  intakeSubtitle: {
-    fontSize: 15,
-    color: "#57534E",
   },
   waitingCard: {
     backgroundColor: "#fff",
