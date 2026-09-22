@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase-server";
 import { MatchingQueue } from "./matching-queue";
+import { pairKey } from "@/lib/pair-key";
 import type { IntakeWithProfile } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -13,16 +14,28 @@ export default async function QueuePage() {
     .select("*, profiles!inner(*)")
     .order("submitted_at", { ascending: true });
 
-  // Active matches
-  const { data: activeMatches } = await supabase
+  const { data: allMatches } = await supabase
     .from("matches")
-    .select("user_a, user_b")
-    .is("ended_at", null);
+    .select("user_a, user_b, ended_at");
+
+  const { data: blocks } = await supabase
+    .from("blocks")
+    .select("blocker_id, blocked_id");
 
   const matchedUserIds = new Set<string>();
-  activeMatches?.forEach((m) => {
+  allMatches?.forEach((m) => {
+    if (m.ended_at) return;
     matchedUserIds.add(m.user_a);
     matchedUserIds.add(m.user_b);
+  });
+
+  // The database refuses these pairs too; this just says so before you try.
+  const excludedPairs: Record<string, "blocked" | "previously_matched"> = {};
+  allMatches?.forEach((m) => {
+    excludedPairs[pairKey(m.user_a, m.user_b)] = "previously_matched";
+  });
+  blocks?.forEach((b) => {
+    excludedPairs[pairKey(b.blocker_id, b.blocked_id)] = "blocked";
   });
 
   const unmatched = (allIntakes as IntakeWithProfile[] | null)?.filter(
@@ -50,7 +63,7 @@ export default async function QueuePage() {
           </p>
         </div>
       ) : (
-        <MatchingQueue intakes={unmatched} />
+        <MatchingQueue intakes={unmatched} excludedPairs={excludedPairs} />
       )}
     </div>
   );

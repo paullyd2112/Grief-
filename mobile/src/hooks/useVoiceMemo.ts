@@ -7,6 +7,7 @@ import {
 } from "expo-audio";
 import { Alert } from "react-native";
 import { supabase } from "../lib/supabase";
+import { sendErrorMessage } from "../lib/send-errors";
 import * as FileSystem from "expo-file-system";
 
 const MAX_DURATION_MS = 120_000; // 2 minutes
@@ -121,8 +122,8 @@ export function useVoiceMemo(conversationId: string | undefined) {
         if (msgError) throw msgError;
 
         setDurationMs(0);
-      } catch {
-        Alert.alert("Upload failed", "Check your connection and try again.");
+      } catch (e) {
+        Alert.alert("Couldn't send", sendErrorMessage(e));
       } finally {
         setUploading(false);
       }

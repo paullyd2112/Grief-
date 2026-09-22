@@ -36,19 +36,24 @@ do $$ begin
   if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if;
   if not exists (select 1 from pg_roles where rolname='anon') then create role anon nologin; end if;
 end $$;
+create schema if not exists storage;
+create table storage.buckets (id text primary key, name text, public boolean);
+create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+alter table storage.objects enable row level security;
+
+-- Supabase grants table rights via default privileges at creation time, so
+-- revokes inside migrations take effect. Granting after would mask them.
+grant usage on schema public, auth to authenticated, anon;
+grant select on auth.users to authenticated;
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to authenticated, anon;
+alter default privileges in schema public
+  grant usage, select on sequences to authenticated, anon;
 SQL
 
 for f in "$ROOT"/supabase/migrations/*.sql; do
   "${PSQL[@]}" -d ndo_test -f "$f" >/dev/null
 done
-
-"${PSQL[@]}" -d ndo_test >/dev/null <<'SQL'
-grant usage on schema public, auth to authenticated, anon;
-grant select, insert, update on all tables in schema public to authenticated;
-grant select on auth.users to authenticated;
-grant execute on all functions in schema public to authenticated;
-grant usage, select on all sequences in schema public to authenticated;
-SQL
 
 echo
 "${PSQL[@]}" -d ndo_test -f "$ROOT/tests/access_policy_test.sql" 2>&1 \

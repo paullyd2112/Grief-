@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -126,6 +126,32 @@ export default function IntakeScreen() {
   const [matchPref, setMatchPref] = useState<MatchPreference | null>(null);
   const [financialStrain, setFinancialStrain] = useState<boolean | null>(null);
   const [freeText, setFreeText] = useState("");
+  const [isEdit, setIsEdit] = useState(false);
+  const [prefilling, setPrefilling] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("intake_responses")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setIsEdit(true);
+          setRelationship(data.relationship);
+          setRelationshipDetail(data.relationship_detail ?? "");
+          setManner(data.manner_of_death);
+          setSuddenness(data.suddenness);
+          setDeceasedAge(data.deceased_age_range ?? "");
+          setTimeSince(data.time_since_loss);
+          setMatchPref(data.match_preference);
+          setFinancialStrain(data.financial_strain);
+          setFreeText(data.free_text ?? "");
+        }
+        setPrefilling(false);
+      });
+  }, [user]);
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -146,35 +172,42 @@ export default function IntakeScreen() {
 
     const tz = Localization.getCalendars?.()[0]?.timeZone ?? null;
 
-    const { error } = await supabase.from("intake_responses").insert({
-      user_id: user.id,
-      relationship,
-      relationship_detail: relationshipDetail.trim() || null,
-      manner_of_death: manner,
-      suddenness,
-      deceased_age_range: deceasedAge.trim() || null,
-      time_since_loss: timeSince,
-      support_wanted: [],
-      match_preference: matchPref,
-      financial_strain: financialStrain,
-      free_text: freeText.trim() || null,
-      timezone: tz,
-    });
+    const { error } = await supabase.from("intake_responses").upsert(
+      {
+        user_id: user.id,
+        relationship,
+        relationship_detail: relationshipDetail.trim() || null,
+        manner_of_death: manner,
+        suddenness,
+        deceased_age_range: deceasedAge.trim() || null,
+        time_since_loss: timeSince,
+        match_preference: matchPref,
+        financial_strain: financialStrain,
+        free_text: freeText.trim() || null,
+        timezone: tz,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
 
     setLoading(false);
 
     if (error) {
-      if (error.code === "23505") {
-        Alert.alert("You've already submitted your intake.");
-        router.back();
-      } else {
-        Alert.alert("Something went wrong", error.message);
-      }
+      Alert.alert("Something went wrong", error.message);
       return;
     }
 
-    router.replace("/(app)");
+    if (router.canGoBack()) router.back();
+    else router.replace("/(app)");
   };
+
+  if (prefilling) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#1C1917" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -364,7 +397,7 @@ export default function IntakeScreen() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.submitText}>Submit</Text>
+          <Text style={styles.submitText}>{isEdit ? "Save changes" : "Submit"}</Text>
         )}
       </TouchableOpacity>
 
@@ -378,6 +411,12 @@ export default function IntakeScreen() {
 }
 
 const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FAFAF9",
+  },
   scroll: {
     flex: 1,
     backgroundColor: "#FAFAF9",

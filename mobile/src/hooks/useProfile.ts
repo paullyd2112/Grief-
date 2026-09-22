@@ -24,31 +24,3 @@ export function useProfile(userId: string | undefined) {
 
   return { profile, loading, refetch: fetch };
 }
-
-/** Check if the current user has passed the age gate. */
-export function useDobAttempt(userId: string | undefined) {
-  const [attempt, setAttempt] = useState<{
-    passed: boolean;
-    attempted: boolean;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!userId) return;
-    supabase
-      .from("dob_attempts")
-      .select("passed")
-      .eq("user_id", userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setAttempt({ passed: data.passed, attempted: true });
-        } else {
-          setAttempt({ passed: false, attempted: false });
-        }
-        setLoading(false);
-      });
-  }, [userId]);
-
-  return { attempt, loading };
-}

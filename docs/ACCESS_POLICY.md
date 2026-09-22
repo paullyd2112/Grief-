@@ -42,6 +42,11 @@ which conversation content reaches an operator is a report.
 
 The snapshot is what an operator reviews. The live conversation stays closed.
 
+When a report is filed, operators get an alert (a Slack-compatible webhook,
+configured in Supabase Vault). The alert says only that a report exists and how
+many are open: no names, no reason, no content. Everything else stays behind
+the admin console and its access log.
+
 ## Logging
 
 Every operator read of intake data or of a report snapshot writes a row to

@@ -14,6 +14,11 @@ export default async function DashboardLayout({
 
   if (!user) redirect("/login");
 
+  const { count: openReports } = await supabase
+    .from("reports")
+    .select("id", { count: "exact", head: true })
+    .is("resolved_at", null);
+
   return (
     <div className="min-h-screen bg-stone-50">
       <nav className="border-b border-stone-200 bg-white">
@@ -32,9 +37,14 @@ export default async function DashboardLayout({
                 </Link>
                 <Link
                   href="/reports"
-                  className="text-stone-600 hover:text-stone-900 transition"
+                  className="text-stone-600 hover:text-stone-900 transition flex items-center gap-1.5"
                 >
                   Reports
+                  {!!openReports && (
+                    <span className="bg-red-600 text-white text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none">
+                      {openReports}
+                    </span>
+                  )}
                 </Link>
                 <Link
                   href="/access-log"

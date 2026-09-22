@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
-import { useAuth } from "../../src/hooks/useAuth";
+import { useGate } from "../../src/hooks/useGate";
 
 /**
  * Profile creation — Reddit model. One display_name field.
@@ -21,7 +21,7 @@ import { useAuth } from "../../src/hooks/useAuth";
  * or verifies, and never uses this for ranking, matching, or trust scoring.
  */
 export default function CreateProfileScreen() {
-  const { user } = useAuth();
+  const { user, refreshGate } = useGate();
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [isPseudonym, setIsPseudonym] = useState(false);
@@ -51,18 +51,15 @@ export default function CreateProfileScreen() {
       date_of_birth: dob?.date_of_birth ?? "1900-01-01",
     });
 
-    setLoading(false);
-
-    if (error) {
-      if (error.code === "23505") {
-        // Profile already exists — move on
-        router.replace("/(app)");
-      } else {
-        Alert.alert("Something went wrong", error.message);
-      }
+    if (error && error.code !== "23505") {
+      setLoading(false);
+      Alert.alert("Something went wrong", error.message);
       return;
     }
 
+    // 23505 means the profile already exists, which is fine: move on.
+    await refreshGate();
+    setLoading(false);
     router.replace("/(app)");
   };
 

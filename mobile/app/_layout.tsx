@@ -1,58 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useAuth } from "../src/hooks/useAuth";
-import { useProfile, useDobAttempt } from "../src/hooks/useProfile";
+import { GateProvider, useGate } from "../src/hooks/useGate";
 
-export default function RootLayout() {
-  const { user, loading: authLoading } = useAuth();
-  const { attempt, loading: dobLoading } = useDobAttempt(user?.id);
-  const { profile, loading: profileLoading } = useProfile(user?.id);
+function GatedSlot() {
+  const { user, authLoading, gate } = useGate();
   const segments = useSegments();
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+
+  // Gate state for a different (or no) user is stale; wait for the refresh.
+  const ready = !authLoading && (!user || gate?.userId === user.id);
 
   useEffect(() => {
-    if (authLoading || (user && dobLoading) || (user && profileLoading)) return;
-    setReady(true);
+    if (!ready) return;
 
+    const path = segments.join("/");
     const inAuthGroup = segments[0] === "(auth)";
 
-    if (!user && !inAuthGroup) {
-      router.replace("/(auth)/login");
-      return;
-    }
-
-    if (!user) return;
-
-    if (attempt && !attempt.attempted) {
-      if (!inAuthGroup) router.replace("/(auth)/age-gate");
-      return;
-    }
-
-    if (attempt?.attempted && !attempt.passed) {
-      router.replace("/(auth)/underage");
-      return;
-    }
-
-    if (attempt?.passed && !profile) {
-      if (segments.join("/") !== "(auth)/create-profile") {
-        router.replace("/(auth)/create-profile");
-      }
-      return;
-    }
-
-    if (attempt?.passed && profile && inAuthGroup) {
+    if (!user) {
+      if (path !== "(auth)/login") router.replace("/(auth)/login");
+    } else if (!gate?.dobAttempted) {
+      if (path !== "(auth)/age-gate") router.replace("/(auth)/age-gate");
+    } else if (!gate.dobPassed) {
+      if (path !== "(auth)/underage") router.replace("/(auth)/underage");
+    } else if (!gate.hasProfile) {
+      if (path !== "(auth)/create-profile") router.replace("/(auth)/create-profile");
+    } else if (inAuthGroup) {
       router.replace("/(app)");
     }
-  }, [user, authLoading, dobLoading, profileLoading, attempt, profile, segments]);
+  }, [ready, user, gate, segments, router]);
 
   if (!ready) return null;
+  return <Slot />;
+}
 
+export default function RootLayout() {
   return (
-    <>
+    <GateProvider>
       <StatusBar style="auto" />
-      <Slot />
-    </>
+      <GatedSlot />
+    </GateProvider>
   );
 }

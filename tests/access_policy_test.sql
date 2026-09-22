@@ -158,6 +158,119 @@ exception when unique_violation then
   raise notice 'PASS  age gate allows exactly one attempt';
 end $$;
 
+-- 11. A participant cannot move their seat into someone else's conversation.
+set role postgres;
+insert into auth.users (id) values
+  ('55555555-5555-5555-5555-555555555555'),
+  ('66666666-6666-6666-6666-666666666666');
+insert into public.profiles (id, display_name, date_of_birth) values
+  ('55555555-5555-5555-5555-555555555555', 'sam',   '1991-02-02'),
+  ('66666666-6666-6666-6666-666666666666', 'jordan', '1987-07-07');
+insert into public.matches (id, user_a, user_b) values
+  ('aaaaaaaa-0000-0000-0000-000000000003',
+   '55555555-5555-5555-5555-555555555555',
+   '66666666-6666-6666-6666-666666666666');
+insert into public.conversations (id, match_id) values
+  ('cccccccc-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000003');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+do $$
+begin
+  update public.conversation_participants
+     set conversation_id = 'cccccccc-0000-0000-0000-000000000003'
+   where user_id = '44444444-4444-4444-4444-444444444444';
+  raise exception 'FAIL: participant rewrote their conversation_id';
+exception when insufficient_privilege then
+  raise notice 'PASS  participant cannot move into another conversation';
+end $$;
+
+-- 12. mark_read stamps only the caller's own seat.
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.mark_read('cccccccc-0000-0000-0000-000000000003');
+set role postgres;
+select pg_temp.check('mark_read stamps the caller',
+  (select last_read_at is not null from public.conversation_participants
+    where conversation_id = 'cccccccc-0000-0000-0000-000000000003'
+      and user_id = '55555555-5555-5555-5555-555555555555'));
+select pg_temp.check('mark_read leaves the other party alone',
+  (select last_read_at is null from public.conversation_participants
+    where conversation_id = 'cccccccc-0000-0000-0000-000000000003'
+      and user_id = '66666666-6666-6666-6666-666666666666'));
+
+-- 13. A user can rename themselves but cannot lift their own suspension.
+update public.profiles set status = 'suspended'
+ where id = '44444444-4444-4444-4444-444444444444';
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+update public.profiles set display_name = 'outsider2'
+ where id = '44444444-4444-4444-4444-444444444444';
+do $$
+begin
+  update public.profiles set status = 'active'
+   where id = '44444444-4444-4444-4444-444444444444';
+  raise exception 'FAIL: suspended user reactivated themselves';
+exception when insufficient_privilege then
+  raise notice 'PASS  suspended user cannot reactivate themselves';
+end $$;
+set role postgres;
+select pg_temp.check('user can still change their display name',
+  (select display_name from public.profiles
+    where id = '44444444-4444-4444-4444-444444444444') = 'outsider2');
+
+-- 14. Matching refuses blocked pairs and repeat pairs.
+insert into public.blocks (blocker_id, blocked_id) values
+  ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222');
+do $$
+begin
+  insert into public.matches (user_a, user_b) values
+    ('22222222-2222-2222-2222-222222222222', '44444444-4444-4444-4444-444444444444');
+  raise exception 'FAIL: matched a blocked pair';
+exception when raise_exception then
+  if sqlerrm not like 'blocked_pair%' then raise; end if;
+  raise notice 'PASS  a blocked pair cannot be matched';
+end $$;
+do $$
+begin
+  insert into public.matches (user_a, user_b) values
+    ('11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444');
+  raise exception 'FAIL: re-matched a previous pair';
+exception when raise_exception then
+  if sqlerrm not like 'previously_matched%' then raise; end if;
+  raise notice 'PASS  a previous pair cannot be re-matched';
+end $$;
+
+-- 15. Message rate limit: 20 a minute, then refused.
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+do $$
+begin
+  for i in 1..20 loop
+    insert into public.messages (conversation_id, sender_id, kind, body)
+    values ('cccccccc-0000-0000-0000-000000000003',
+            '55555555-5555-5555-5555-555555555555', 'text', 'msg ' || i);
+  end loop;
+  raise notice 'PASS  20 messages in a minute are allowed';
+  insert into public.messages (conversation_id, sender_id, kind, body)
+  values ('cccccccc-0000-0000-0000-000000000003',
+          '55555555-5555-5555-5555-555555555555', 'text', 'one too many');
+  raise exception 'FAIL: 21st message in a minute was accepted';
+exception when raise_exception then
+  if sqlerrm not like 'rate_limited%' then raise; end if;
+  raise notice 'PASS  the 21st message in a minute is refused';
+end $$;
+
+-- 16. Filing a report still works when alerts aren't configured.
+set request.jwt.claim.sub = '66666666-6666-6666-6666-666666666666';
+select public.report_message(
+  'cccccccc-0000-0000-0000-000000000003',
+  '55555555-5555-5555-5555-555555555555',
+  null, 'spam', '{"messages": []}'::jsonb, true);
+set role postgres;
+select pg_temp.check('report is filed with no alert webhook configured',
+  (select count(*) from public.reports
+    where conversation_id = 'cccccccc-0000-0000-0000-000000000003') = 1);
+
 set role postgres;
 \echo ''
 \echo 'All access policy assertions passed.'

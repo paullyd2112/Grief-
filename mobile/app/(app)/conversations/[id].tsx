@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { useMessages } from "../../../src/hooks/useMessages";
 import { useConversation } from "../../../src/hooks/useConversation";
 import { useVoiceMemo } from "../../../src/hooks/useVoiceMemo";
 import { containsContactInfo } from "../../../src/lib/contact-detect";
+import { sendErrorMessage } from "../../../src/lib/send-errors";
 import { VoiceBubble } from "../../../src/components/VoiceBubble";
 import { supabase } from "../../../src/lib/supabase";
 import type { Message } from "../../../src/lib/types";
@@ -142,6 +143,10 @@ export default function ConversationScreen() {
 
   const isEnded = info?.matchEnded || info?.conversationDeleted;
 
+  useEffect(() => {
+    if (id) supabase.rpc("mark_read", { conv: id });
+  }, [id, messages.length]);
+
   const handleSend = useCallback(async () => {
     const trimmed = text.trim();
     if (!trimmed || !user || sending || isEnded) return;
@@ -156,8 +161,8 @@ export default function ConversationScreen() {
     try {
       await sendMessage(trimmed, user.id);
       setText("");
-    } catch {
-      Alert.alert("Couldn't send", "Check your connection and try again.");
+    } catch (e) {
+      Alert.alert("Couldn't send", sendErrorMessage(e));
     } finally {
       setSending(false);
     }
@@ -170,8 +175,8 @@ export default function ConversationScreen() {
       await sendMessage(contactWarningText, user.id);
       setText("");
       setContactWarningText(null);
-    } catch {
-      Alert.alert("Couldn't send", "Check your connection and try again.");
+    } catch (e) {
+      Alert.alert("Couldn't send", sendErrorMessage(e));
     } finally {
       setSending(false);
     }

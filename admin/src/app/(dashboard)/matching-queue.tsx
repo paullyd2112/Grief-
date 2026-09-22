@@ -4,9 +4,23 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IntakeCard } from "@/components/intake-card";
 import { createMatch, logAccess } from "@/lib/admin-actions";
+import { pairKey } from "@/lib/pair-key";
 import type { IntakeWithProfile } from "@/lib/types";
 
-export function MatchingQueue({ intakes }: { intakes: IntakeWithProfile[] }) {
+const EXCLUSION_MESSAGE = {
+  blocked:
+    "One of these people has blocked the other. They can't be matched.",
+  previously_matched:
+    "These two have been matched before. They can't be matched again.",
+} as const;
+
+export function MatchingQueue({
+  intakes,
+  excludedPairs,
+}: {
+  intakes: IntakeWithProfile[];
+  excludedPairs: Record<string, keyof typeof EXCLUSION_MESSAGE>;
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [matchReason, setMatchReason] = useState("");
@@ -21,8 +35,13 @@ export function MatchingQueue({ intakes }: { intakes: IntakeWithProfile[] }) {
     });
   };
 
+  const exclusion =
+    selected.length === 2
+      ? excludedPairs[pairKey(selected[0], selected[1])]
+      : undefined;
+
   const handleMatch = async () => {
-    if (selected.length !== 2) return;
+    if (selected.length !== 2 || exclusion) return;
     if (!matchReason.trim()) {
       setError("Write why you're matching these two — it's the dataset.");
       return;
@@ -122,7 +141,13 @@ export function MatchingQueue({ intakes }: { intakes: IntakeWithProfile[] }) {
             </div>
           ))}
 
-          {selected.length === 2 && (
+          {exclusion && (
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {EXCLUSION_MESSAGE[exclusion]}
+            </p>
+          )}
+
+          {selected.length === 2 && !exclusion && (
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-1">

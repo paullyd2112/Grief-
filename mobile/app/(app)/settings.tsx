@@ -20,6 +20,27 @@ export default function SettingsScreen() {
         <Text style={styles.value}>{user?.email ?? "—"}</Text>
       </View>
 
+      {profile?.guidelines_accepted_at && (
+        <>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Matching</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() => router.push("/(app)/intake")}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkText}>Update your intake</Text>
+              <Text style={styles.linkSubtext}>
+                If your situation or preferences have changed
+              </Text>
+            </View>
+            <Text style={styles.linkArrow}>›</Text>
+          </TouchableOpacity>
+        </>
+      )}
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Support & Safety</Text>
       </View>
@@ -127,6 +148,11 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 16,
     color: "#1C1917",
+  },
+  linkSubtext: {
+    fontSize: 13,
+    color: "#78716C",
+    marginTop: 2,
   },
   linkArrow: {
     fontSize: 20,

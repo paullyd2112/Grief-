@@ -1,7 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../src/hooks/useAuth";
-import { useProfile } from "../../src/hooks/useProfile";
 import { supabase } from "../../src/lib/supabase";
 
 const sections = [
@@ -37,7 +36,6 @@ const sections = [
 
 export default function GuidelinesScreen() {
   const { user } = useAuth();
-  const { refetch: refetchProfile } = useProfile(user?.id);
   const router = useRouter();
 
   const acceptGuidelines = async () => {
@@ -51,7 +49,6 @@ export default function GuidelinesScreen() {
       Alert.alert("Something went wrong", "Please try again.");
       return;
     }
-    await refetchProfile();
     router.back();
   };
 

@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
-import { useAuth } from "../../src/hooks/useAuth";
+import { useGate } from "../../src/hooks/useGate";
 
 /**
  * Age gate — one attempt, enforced by the database.
@@ -22,7 +22,7 @@ import { useAuth } from "../../src/hooks/useAuth";
  * the form cannot teach someone the right answer by letting them retry.
  */
 export default function AgeGateScreen() {
-  const { user } = useAuth();
+  const { user, refreshGate } = useGate();
   const router = useRouter();
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
@@ -58,11 +58,12 @@ export default function AgeGateScreen() {
       date_of_birth: dob,
       passed,
     });
+    await refreshGate();
     setLoading(false);
 
     if (error) {
-      // Unique violation means they already tried — shouldn't happen in normal
-      // flow since the root layout guards it, but handle gracefully.
+      // Unique violation means they already tried; the refreshed gate state
+      // lets the root layout route them to the right place.
       Alert.alert("You've already completed this step.");
       return;
     }

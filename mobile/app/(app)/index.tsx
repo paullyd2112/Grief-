@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -6,8 +6,9 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/hooks/useAuth";
 import { useProfile } from "../../src/hooks/useProfile";
@@ -15,10 +16,10 @@ import type { MatchEndNotice } from "../../src/lib/types";
 
 interface ConversationItem {
   id: string;
-  matchId: string;
   partnerName: string;
   lastMessage: string | null;
-  lastMessageAt: string | null;
+  sortAt: string;
+  unread: boolean;
 }
 
 export default function HomeScreen() {
@@ -29,80 +30,100 @@ export default function HomeScreen() {
   const [notices, setNotices] = useState<MatchEndNotice[]>([]);
   const [hasIntake, setHasIntake] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const guidelinesAccepted = !!profile?.guidelines_accepted_at;
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!user) return;
 
-    const loadData = async () => {
-      const { data: intake } = await supabase
-        .from("intake_responses")
-        .select("id")
-        .eq("user_id", user.id)
+    const { data: intake } = await supabase
+      .from("intake_responses")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    setHasIntake(!!intake);
+
+    const { data: convs } = await supabase
+      .from("conversation_participants")
+      .select(`
+        conversation_id,
+        last_read_at,
+        conversations!inner (
+          id, match_id, created_at, deleted_at,
+          matches!inner ( id, ended_at, user_a, user_b )
+        )
+      `)
+      .eq("user_id", user.id)
+      .is("conversations.deleted_at", null)
+      .is("conversations.matches.ended_at", null);
+
+    const items: ConversationItem[] = [];
+    for (const row of (convs ?? []) as any[]) {
+      const conv = row.conversations;
+      const match = conv.matches;
+      const partnerId = match.user_a === user.id ? match.user_b : match.user_a;
+      const { data: partner } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", partnerId)
+        .single();
+      const { data: lastMsg } = await supabase
+        .from("messages")
+        .select("body, kind, sender_id, created_at")
+        .eq("conversation_id", conv.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      setHasIntake(!!intake);
+      const unread =
+        !!lastMsg &&
+        lastMsg.sender_id !== user.id &&
+        (!row.last_read_at ||
+          new Date(lastMsg.created_at) > new Date(row.last_read_at));
 
-      const { data: convs } = await supabase
-        .from("conversation_participants")
-        .select(`
-          conversation_id,
-          conversations!inner (
-            id, match_id, deleted_at,
-            matches!inner ( id, ended_at, user_a, user_b )
-          )
-        `)
-        .eq("user_id", user.id)
-        .is("conversations.deleted_at", null)
-        .is("conversations.matches.ended_at", null);
+      items.push({
+        id: conv.id,
+        partnerName: partner?.display_name ?? "Someone",
+        lastMessage: lastMsg
+          ? lastMsg.kind === "voice"
+            ? "Voice memo"
+            : lastMsg.body
+          : null,
+        sortAt: lastMsg?.created_at ?? conv.created_at,
+        unread,
+      });
+    }
+    items.sort(
+      (a, b) => new Date(b.sortAt).getTime() - new Date(a.sortAt).getTime()
+    );
+    setConversations(items);
 
-      if (convs) {
-        const items: ConversationItem[] = [];
-        for (const row of convs as any[]) {
-          const conv = row.conversations;
-          const match = conv.matches;
-          const partnerId =
-            match.user_a === user.id ? match.user_b : match.user_a;
-          const { data: partner } = await supabase
-            .from("profiles")
-            .select("display_name")
-            .eq("id", partnerId)
-            .single();
-          const { data: lastMsg } = await supabase
-            .from("messages")
-            .select("body, kind, created_at")
-            .eq("conversation_id", conv.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          items.push({
-            id: conv.id,
-            matchId: match.id,
-            partnerName: partner?.display_name ?? "Someone",
-            lastMessage: lastMsg
-              ? lastMsg.kind === "voice"
-                ? "Voice memo"
-                : lastMsg.body
-              : null,
-            lastMessageAt: lastMsg?.created_at ?? null,
-          });
-        }
-        setConversations(items);
-      }
+    const { data: unseenNotices } = await supabase
+      .from("match_end_notices")
+      .select("*")
+      .eq("recipient_id", user.id)
+      .is("seen_at", null);
 
-      const { data: unseenNotices } = await supabase
-        .from("match_end_notices")
-        .select("*")
-        .eq("recipient_id", user.id)
-        .is("seen_at", null);
-
-      setNotices(unseenNotices ?? []);
-      setLoading(false);
-    };
-
-    loadData();
+    setNotices(unseenNotices ?? []);
+    setLoading(false);
   }, [user]);
+
+  // Reload whenever the screen regains focus, so returning from guidelines,
+  // intake, or a conversation shows current state.
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+      refetchProfile();
+    }, [loadData, refetchProfile])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([loadData(), refetchProfile()]);
+    setRefreshing(false);
+  }, [loadData, refetchProfile]);
 
   const dismissNotice = async (id: string) => {
     await supabase
@@ -122,8 +143,8 @@ export default function HomeScreen() {
 
   const isNewUser = !guidelinesAccepted || !hasIntake;
 
-  return (
-    <View style={styles.container}>
+  const header = (
+    <>
       {/* Departure notices */}
       {notices.map((notice) => (
         <View key={notice.id} style={styles.noticeCard}>
@@ -156,40 +177,18 @@ export default function HomeScreen() {
 
           {/* Step 1: Guidelines */}
           <TouchableOpacity
-            style={[
-              styles.stepCard,
-              guidelinesAccepted && styles.stepCardDone,
-            ]}
-            onPress={() => {
-              if (!guidelinesAccepted) {
-                router.push("/(app)/guidelines");
-              }
-            }}
+            style={[styles.stepCard, guidelinesAccepted && styles.stepCardDone]}
+            onPress={() => router.push("/(app)/guidelines")}
             disabled={guidelinesAccepted}
           >
             <View style={styles.stepRow}>
-              <View
-                style={[
-                  styles.stepBadge,
-                  guidelinesAccepted && styles.stepBadgeDone,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.stepBadgeText,
-                    guidelinesAccepted && styles.stepBadgeTextDone,
-                  ]}
-                >
+              <View style={[styles.stepBadge, guidelinesAccepted && styles.stepBadgeDone]}>
+                <Text style={styles.stepBadgeText}>
                   {guidelinesAccepted ? "✓" : "1"}
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.stepTitle,
-                    guidelinesAccepted && styles.stepTitleDone,
-                  ]}
-                >
+                <Text style={[styles.stepTitle, guidelinesAccepted && styles.stepTitleDone]}>
                   Read the community guidelines
                 </Text>
                 <Text style={styles.stepDesc}>
@@ -198,9 +197,7 @@ export default function HomeScreen() {
                     : "The ground rules for every conversation"}
                 </Text>
               </View>
-              {!guidelinesAccepted && (
-                <Text style={styles.stepArrow}>›</Text>
-              )}
+              {!guidelinesAccepted && <Text style={styles.stepArrow}>›</Text>}
             </View>
           </TouchableOpacity>
 
@@ -211,11 +208,7 @@ export default function HomeScreen() {
               !guidelinesAccepted && styles.stepCardLocked,
               hasIntake && styles.stepCardDone,
             ]}
-            onPress={() => {
-              if (guidelinesAccepted && !hasIntake) {
-                router.push("/(app)/intake");
-              }
-            }}
+            onPress={() => router.push("/(app)/intake")}
             disabled={!guidelinesAccepted || !!hasIntake}
           >
             <View style={styles.stepRow}>
@@ -226,15 +219,7 @@ export default function HomeScreen() {
                   !guidelinesAccepted && styles.stepBadgeLocked,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.stepBadgeText,
-                    hasIntake && styles.stepBadgeTextDone,
-                    !guidelinesAccepted && styles.stepBadgeTextLocked,
-                  ]}
-                >
-                  {hasIntake ? "✓" : "2"}
-                </Text>
+                <Text style={styles.stepBadgeText}>{hasIntake ? "✓" : "2"}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text
@@ -260,8 +245,8 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Waiting state — only after both steps complete */}
-      {guidelinesAccepted && hasIntake && conversations.length === 0 && notices.length === 0 && (
+      {/* Waiting state, only after both steps are done */}
+      {!isNewUser && conversations.length === 0 && notices.length === 0 && (
         <View style={styles.waitingCard}>
           <Text style={styles.waitingTitle}>We're finding someone for you</Text>
           <Text style={styles.waitingBody}>
@@ -269,51 +254,60 @@ export default function HomeScreen() {
             you with someone whose experience fits. This takes a little time, and
             it's worth it.
           </Text>
+          <Text style={styles.waitingHint}>Pull down to check for updates.</Text>
         </View>
       )}
+    </>
+  );
 
-      {/* Conversations */}
-      {conversations.length > 0 && (
-        <FlatList
-          data={conversations}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingTop: 8 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.convRow}
-              onPress={() =>
-                router.push(`/(app)/conversations/${item.id}`)
-              }
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.convName}>{item.partnerName}</Text>
-                {item.lastMessage && (
-                  <Text style={styles.convPreview} numberOfLines={1}>
-                    {item.lastMessage}
-                  </Text>
-                )}
-              </View>
-              <Text style={styles.convArrow}>›</Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={() => router.push("/(app)/settings")}>
-          <Text style={styles.footerLink}>Settings</Text>
-        </TouchableOpacity>
-        <Text style={styles.footerDivider}>·</Text>
-        <TouchableOpacity onPress={() => router.push("/(app)/crisis")}>
-          <Text style={styles.footerLink}>Crisis help</Text>
-        </TouchableOpacity>
-        <Text style={styles.footerDivider}>·</Text>
-        <TouchableOpacity onPress={signOut}>
-          <Text style={styles.footerLink}>Sign out</Text>
-        </TouchableOpacity>
-      </View>
+  const footer = (
+    <View style={styles.footer}>
+      <TouchableOpacity onPress={() => router.push("/(app)/settings")}>
+        <Text style={styles.footerLink}>Settings</Text>
+      </TouchableOpacity>
+      <Text style={styles.footerDivider}>·</Text>
+      <TouchableOpacity onPress={() => router.push("/(app)/crisis")}>
+        <Text style={styles.footerLink}>Crisis help</Text>
+      </TouchableOpacity>
+      <Text style={styles.footerDivider}>·</Text>
+      <TouchableOpacity onPress={signOut}>
+        <Text style={styles.footerLink}>Sign out</Text>
+      </TouchableOpacity>
     </View>
+  );
+
+  return (
+    <FlatList
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      data={conversations}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={header}
+      ListFooterComponent={footer}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={styles.convRow}
+          onPress={() => router.push(`/(app)/conversations/${item.id}`)}
+        >
+          <View style={[styles.unreadDot, !item.unread && styles.unreadDotHidden]} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.convName, item.unread && styles.convNameUnread]}>
+              {item.partnerName}
+            </Text>
+            <Text
+              style={[styles.convPreview, item.unread && styles.convPreviewUnread]}
+              numberOfLines={1}
+            >
+              {item.lastMessage ?? "New match. Say hello when you're ready."}
+            </Text>
+          </View>
+          <Text style={styles.convArrow}>›</Text>
+        </TouchableOpacity>
+      )}
+    />
   );
 }
 
@@ -321,7 +315,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FAFAF9",
+  },
+  content: {
     paddingHorizontal: 16,
+    paddingTop: 8,
+    flexGrow: 1,
   },
   center: {
     flex: 1,
@@ -330,7 +328,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAF9",
   },
   welcomeSection: {
-    marginTop: 16,
+    marginTop: 8,
   },
   welcomeTitle: {
     fontSize: 24,
@@ -382,12 +380,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 15,
     fontWeight: "700",
-  },
-  stepBadgeTextDone: {
-    color: "#fff",
-  },
-  stepBadgeTextLocked: {
-    color: "#fff",
   },
   stepTitle: {
     fontSize: 16,
@@ -445,7 +437,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 20,
-    marginTop: 16,
+    marginTop: 8,
     borderWidth: 1,
     borderColor: "#E7E5E4",
   },
@@ -460,26 +452,47 @@ const styles = StyleSheet.create({
     color: "#57534E",
     lineHeight: 22,
   },
+  waitingHint: {
+    fontSize: 13,
+    color: "#A8A29E",
+    marginTop: 12,
+  },
   convRow: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
-    marginBottom: 8,
+    paddingLeft: 12,
+    marginTop: 8,
     borderWidth: 1,
     borderColor: "#E7E5E4",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: 10,
+  },
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#3B82F6",
+  },
+  unreadDotHidden: {
+    backgroundColor: "transparent",
   },
   convName: {
     fontSize: 17,
     fontWeight: "500",
     color: "#1C1917",
   },
+  convNameUnread: {
+    fontWeight: "700",
+  },
   convPreview: {
     fontSize: 14,
     color: "#78716C",
     marginTop: 2,
+  },
+  convPreviewUnread: {
+    color: "#1C1917",
   },
   convArrow: {
     fontSize: 22,
@@ -491,6 +504,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 24,
     gap: 12,
+    marginTop: "auto",
   },
   footerLink: {
     fontSize: 15,
