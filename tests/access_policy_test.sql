@@ -523,6 +523,54 @@ update public.concerns set purge_after = now() - interval '1 day';
 select pg_temp.check('expired concerns are purged',
   public.purge_expired_concerns() = 1);
 
+-- 24. Urgent concerns and check-ins from Ndo.
+set role authenticated;
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000009';
+select public.raise_concern('cccccccc-0000-0000-0000-000000000007', null, true);
+select public.raise_concern('cccccccc-0000-0000-0000-000000000007', 'more detail', false);
+set role postgres;
+select pg_temp.check('"yes, right now" marks the concern urgent',
+  (select urgent from public.concerns where handled_at is null));
+select pg_temp.check('adding a note later does not downgrade urgency',
+  (select urgent and note = 'more detail' from public.concerns where handled_at is null));
+
+set role authenticated;
+do $$
+begin
+  perform public.send_check_in((select id from public.concerns where handled_at is null));
+  raise exception 'FAIL: a non-operator sent a check-in';
+exception when raise_exception then
+  if sqlerrm <> 'not_admin' then raise; end if;
+  raise notice 'PASS  only operators can send a check-in';
+end $$;
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.send_check_in((select id from public.concerns where handled_at is null));
+
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-00000000000b';
+select pg_temp.check('the person it is about receives the check-in',
+  (select count(*) from public.check_ins) = 1);
+update public.check_ins set seen_at = now();
+select pg_temp.check('they can dismiss it',
+  (select seen_at is not null from public.check_ins));
+do $$
+begin
+  update public.check_ins set user_id = '90000000-0000-0000-0000-000000000009';
+  raise exception 'FAIL: a check-in was reassigned';
+exception when insufficient_privilege then
+  raise notice 'PASS  a check-in cannot be changed beyond dismissing it';
+end $$;
+
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000009';
+select pg_temp.check('the worried person cannot see the check-in',
+  (select count(*) from public.check_ins) = 0);
+
+set role postgres;
+select pg_temp.check('sending a check-in is written to the access log',
+  exists (select 1 from public.access_log
+           where action = 'check_in_sent'
+             and subject_user_id = 'b0000000-0000-0000-0000-00000000000b'));
+
 set role postgres;
 \echo ''
 \echo 'All access policy assertions passed.'

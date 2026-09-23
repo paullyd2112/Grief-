@@ -24,6 +24,12 @@ export default async function DashboardLayout({
     .select("id", { count: "exact", head: true })
     .is("handled_at", null);
 
+  const { count: urgentConcerns } = await supabase
+    .from("concerns")
+    .select("id", { count: "exact", head: true })
+    .is("handled_at", null)
+    .eq("urgent", true);
+
   return (
     <div className="min-h-screen bg-stone-50">
       <nav className="border-b border-stone-200 bg-white">
@@ -46,7 +52,11 @@ export default async function DashboardLayout({
                 >
                   Concerns
                   {!!openConcerns && (
-                    <span className="bg-amber-500 text-white text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none">
+                    <span
+                      className={`${
+                        urgentConcerns ? "bg-red-600" : "bg-amber-500"
+                      } text-white text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none`}
+                    >
                       {openConcerns}
                     </span>
                   )}

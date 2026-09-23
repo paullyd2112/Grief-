@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Linking,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
@@ -28,6 +29,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [notices, setNotices] = useState<MatchEndNotice[]>([]);
+  const [checkInIds, setCheckInIds] = useState<string[]>([]);
   const [hasIntake, setHasIntake] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -107,6 +109,13 @@ export default function HomeScreen() {
       .is("seen_at", null);
 
     setNotices(unseenNotices ?? []);
+
+    const { data: checkIns } = await supabase
+      .from("check_ins")
+      .select("id")
+      .is("seen_at", null);
+
+    setCheckInIds((checkIns ?? []).map((c) => c.id));
     setLoading(false);
   }, [user]);
 
@@ -133,6 +142,15 @@ export default function HomeScreen() {
     setNotices((prev) => prev.filter((n) => n.id !== id));
   };
 
+  const dismissCheckIns = async () => {
+    const ids = checkInIds;
+    setCheckInIds([]);
+    await supabase
+      .from("check_ins")
+      .update({ seen_at: new Date().toISOString() })
+      .in("id", ids);
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -145,6 +163,34 @@ export default function HomeScreen() {
 
   const header = (
     <>
+      {/* Check-in from Ndo. Never says why it was sent. */}
+      {checkInIds.length > 0 && (
+        <View style={styles.checkInCard}>
+          <Text style={styles.checkInTitle}>Checking in on you</Text>
+          <Text style={styles.checkInBody}>
+            {"Grief can get really heavy. If things feel like too much right now, you don't have to carry it alone."}
+          </Text>
+          <TouchableOpacity
+            style={styles.checkInButton}
+            onPress={() => Linking.openURL("tel:988")}
+          >
+            <Text style={styles.checkInButtonText}>Call or text 988</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.checkInButton}
+            onPress={() => Linking.openURL("sms:741741&body=HELLO")}
+          >
+            <Text style={styles.checkInButtonText}>Text HELLO to 741741</Text>
+          </TouchableOpacity>
+          <Text style={styles.checkInFootnote}>
+            Both are free, confidential, and there any time, day or night.
+          </Text>
+          <TouchableOpacity onPress={dismissCheckIns}>
+            <Text style={styles.checkInDismiss}>{"I'm okay for now"}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Departure notices */}
       {notices.map((notice) => (
         <View key={notice.id} style={styles.noticeCard}>
@@ -400,6 +446,51 @@ const styles = StyleSheet.create({
   stepArrow: {
     fontSize: 22,
     color: "#A8A29E",
+  },
+  checkInCard: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    padding: 18,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  checkInTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1E3A8A",
+    marginBottom: 6,
+  },
+  checkInBody: {
+    fontSize: 15,
+    color: "#1E40AF",
+    lineHeight: 22,
+    marginBottom: 14,
+  },
+  checkInButton: {
+    backgroundColor: "#3B82F6",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  checkInButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  checkInFootnote: {
+    fontSize: 13,
+    color: "#1E40AF",
+    textAlign: "center",
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  checkInDismiss: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    paddingVertical: 4,
   },
   noticeCard: {
     backgroundColor: "#FEF3C7",

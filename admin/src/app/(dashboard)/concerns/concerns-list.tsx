@@ -2,14 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { handleConcern } from "@/lib/admin-actions";
+import { handleConcern, sendCheckIn } from "@/lib/admin-actions";
 
 export interface ConcernRow {
   id: string;
   note: string | null;
+  urgent: boolean;
   created_at: string;
   handled_at: string | null;
   handled_note: string | null;
+  check_in_sent_at: string | null;
   raiser: { display_name: string } | null;
   about: { display_name: string } | null;
 }
@@ -17,9 +19,11 @@ export interface ConcernRow {
 function ConcernCard({
   concern,
   onHandle,
+  onSendCheckIn,
 }: {
   concern: ConcernRow;
   onHandle: (id: string, note: string) => void;
+  onSendCheckIn: (id: string) => void;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [note, setNote] = useState("");
@@ -29,11 +33,20 @@ function ConcernCard({
   return (
     <div
       className={`border rounded-xl p-4 ${
-        isOpen ? "border-amber-300 bg-amber-50/40" : "border-stone-200 bg-white"
+        !isOpen
+          ? "border-stone-200 bg-white"
+          : concern.urgent
+            ? "border-red-300 bg-red-50/50"
+            : "border-amber-300 bg-amber-50/40"
       }`}
     >
       <div className="flex items-start justify-between mb-2">
         <p className="text-sm text-stone-600">
+          {concern.urgent && (
+            <span className="mr-2 inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-red-600 text-white">
+              Urgent: may be in danger now
+            </span>
+          )}
           <span className="font-medium text-stone-900">
             {concern.raiser?.display_name ?? "A deleted account"}
           </span>{" "}
@@ -52,6 +65,36 @@ function ConcernCard({
       ) : (
         <p className="text-xs text-stone-400 italic mb-3">No note left.</p>
       )}
+
+      <div className="mb-3 text-sm">
+        {concern.check_in_sent_at ? (
+          <p className="text-stone-500">
+            Check-in sent {new Date(concern.check_in_sent_at).toLocaleString()}
+          </p>
+        ) : concern.about ? (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Show ${aboutName} a check-in from Ndo with crisis lines? It won't mention this concern or who raised it.`
+                  )
+                ) {
+                  onSendCheckIn(concern.id);
+                }
+              }}
+              className="bg-blue-600 text-white rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-blue-700 transition"
+            >
+              Send check-in
+            </button>
+            <span className="text-xs text-stone-500">
+              {concern.urgent
+                ? "Urgent: send it now."
+                : "Not urgent: waiting a little makes it harder to connect to who raised this."}
+            </span>
+          </div>
+        ) : null}
+      </div>
 
       {concern.handled_at ? (
         <div className="bg-green-50 border border-green-100 rounded-lg p-3">
@@ -115,15 +158,36 @@ export function ConcernsList({ concerns }: { concerns: ConcernRow[] }) {
     });
   };
 
+  const onSendCheckIn = (concernId: string) => {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await sendCheckIn({ concernId });
+        router.refresh();
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Something went wrong");
+      }
+    });
+  };
+
   const open = concerns.filter((c) => !c.handled_at);
-  const handled = concerns.filter((c) => c.handled_at);
+  const ordered = [
+    ...open.filter((c) => c.urgent),
+    ...open.filter((c) => !c.urgent),
+    ...concerns.filter((c) => c.handled_at),
+  ];
 
   return (
     <div className="space-y-3">
       {error && <p className="text-sm text-red-600">{error}</p>}
       {isPending && <p className="text-sm text-stone-500">Saving…</p>}
-      {[...open, ...handled].map((c) => (
-        <ConcernCard key={c.id} concern={c} onHandle={onHandle} />
+      {ordered.map((c) => (
+        <ConcernCard
+          key={c.id}
+          concern={c}
+          onHandle={onHandle}
+          onSendCheckIn={onSendCheckIn}
+        />
       ))}
     </div>
   );

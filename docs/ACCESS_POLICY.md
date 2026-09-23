@@ -24,7 +24,7 @@ which conversation content reaches an operator is a report.
 | Message *counts* and timestamps | Yes | Liveness — is this match working. Never content. |
 | Reported content + surrounding context | Yes | Only what the reporter's device submitted. |
 | Report/block counts per account | Yes | Behavioural safety signal that needs no content. |
-| A concern ("I'm worried about them") | Yes | Who is worried, about whom, and the note the worried person chose to write. Never the conversation. The person it's about is not told who raised it; when an operator marks it handled, that note appears in their access log. |
+| A concern ("I'm worried about them") | Yes | Who is worried, about whom, and the note the worried person chose to write. Never the conversation. The person it's about is not told who raised it; when an operator marks it handled, that note appears in their access log. Operators may send them a check-in from Ndo (crisis lines on their home screen) that never mentions the concern. |
 
 ## What an operator CANNOT read
 

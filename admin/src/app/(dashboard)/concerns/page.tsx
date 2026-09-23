@@ -9,7 +9,7 @@ export default async function ConcernsPage() {
   const { data } = await supabase
     .from("concerns")
     .select(
-      "id, note, created_at, handled_at, handled_note, raiser:profiles!raised_by(display_name), about:profiles!about_user(display_name)"
+      "id, note, urgent, created_at, handled_at, handled_note, check_in_sent_at, raiser:profiles!raised_by(display_name), about:profiles!about_user(display_name)"
     )
     .order("created_at", { ascending: false });
 

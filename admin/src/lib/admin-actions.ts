@@ -150,3 +150,13 @@ export async function handleConcern(params: { concernId: string; note: string })
   });
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Show the person a concern is about a check-in card from Ndo with crisis
+ * lines. It never mentions the concern or who raised it.
+ */
+export async function sendCheckIn(params: { concernId: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("send_check_in", { concern: params.concernId });
+  if (error) throw new Error(error.message);
+}
