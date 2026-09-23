@@ -17,9 +17,11 @@ const EXCLUSION_MESSAGE = {
 export function MatchingQueue({
   intakes,
   excludedPairs,
+  activeMatchCounts,
 }: {
   intakes: IntakeWithProfile[];
   excludedPairs: Record<string, keyof typeof EXCLUSION_MESSAGE>;
+  activeMatchCounts: Record<string, number>;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
@@ -89,6 +91,7 @@ export function MatchingQueue({
           <IntakeCard
             key={intake.id}
             intake={intake}
+            activeMatches={activeMatchCounts[intake.user_id] ?? 0}
             selected={selected.includes(intake.user_id)}
             onSelect={() => toggleSelect(intake.user_id)}
           />

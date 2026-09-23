@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 export default async function QueuePage() {
   const supabase = await createClient();
 
-  // Unmatched users: have an intake response but no active match
   const { data: allIntakes } = await supabase
     .from("intake_responses")
     .select("*, profiles!inner(*)")
@@ -22,12 +21,13 @@ export default async function QueuePage() {
     .from("blocks")
     .select("blocker_id, blocked_id");
 
-  const matchedUserIds = new Set<string>();
+  const activeMatchCounts: Record<string, number> = {};
   allMatches?.forEach((m) => {
     if (m.ended_at) return;
-    matchedUserIds.add(m.user_a);
-    matchedUserIds.add(m.user_b);
+    activeMatchCounts[m.user_a] = (activeMatchCounts[m.user_a] ?? 0) + 1;
+    activeMatchCounts[m.user_b] = (activeMatchCounts[m.user_b] ?? 0) + 1;
   });
+  const countFor = (userId: string) => activeMatchCounts[userId] ?? 0;
 
   // The database refuses these pairs too; this just says so before you try.
   const excludedPairs: Record<string, "blocked" | "previously_matched"> = {};
@@ -38,35 +38,36 @@ export default async function QueuePage() {
     excludedPairs[pairKey(b.blocker_id, b.blocked_id)] = "blocked";
   });
 
-  const unmatched = (allIntakes as IntakeWithProfile[] | null)?.filter(
-    (i) =>
-      !matchedUserIds.has(i.user_id) &&
-      i.profiles.status === "active" &&
-      !i.profiles.deleted_at
-  ) ?? [];
+  // Everyone can hold several matches. People with none come first, longest
+  // waiting at the top (the query is already oldest-first and sort is stable).
+  const matchable = ((allIntakes as IntakeWithProfile[] | null) ?? [])
+    .filter((i) => i.profiles.status === "active" && !i.profiles.deleted_at)
+    .sort((a, b) => countFor(a.user_id) - countFor(b.user_id));
 
-  const matched = (allIntakes as IntakeWithProfile[] | null)?.filter(
-    (i) => matchedUserIds.has(i.user_id)
-  ) ?? [];
+  const waiting = matchable.filter((i) => countFor(i.user_id) === 0).length;
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-stone-900">Matching Queue</h1>
         <p className="text-stone-500 text-sm mt-1">
-          {unmatched.length} waiting · {matched.length} matched
+          {waiting} waiting for a first match · {matchable.length} people in total
         </p>
       </div>
 
-      {unmatched.length === 0 ? (
+      {matchable.length === 0 ? (
         <div className="text-center py-16 text-stone-400">
-          <p className="text-lg">No one waiting</p>
+          <p className="text-lg">No one here yet</p>
           <p className="text-sm mt-1">
             New intakes will appear here as people sign up.
           </p>
         </div>
       ) : (
-        <MatchingQueue intakes={unmatched} excludedPairs={excludedPairs} />
+        <MatchingQueue
+          intakes={matchable}
+          excludedPairs={excludedPairs}
+          activeMatchCounts={activeMatchCounts}
+        />
       )}
     </div>
   );

@@ -248,11 +248,11 @@ export default function HomeScreen() {
       {/* Waiting state, only after both steps are done */}
       {!isNewUser && conversations.length === 0 && notices.length === 0 && (
         <View style={styles.waitingCard}>
-          <Text style={styles.waitingTitle}>We're finding someone for you</Text>
+          <Text style={styles.waitingTitle}>
+            {"We'll have matches for you shortly"}
+          </Text>
           <Text style={styles.waitingBody}>
-            Matches are made by hand — a real person reads your intake and pairs
-            you with someone whose experience fits. This takes a little time, and
-            it's worth it.
+            {"A real person reads your intake and pairs you with people whose experience fits yours. We'll bring them here as soon as they're ready."}
           </Text>
           <Text style={styles.waitingHint}>Pull down to check for updates.</Text>
         </View>

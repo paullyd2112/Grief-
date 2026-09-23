@@ -448,6 +448,15 @@ select pg_temp.check('the held report survives its reporter and subject',
   (select count(*) from public.reports
     where legal_hold and reporter_id is null and reported_user_id is null) = 1);
 
+-- 22. One person can hold several active matches at once.
+insert into public.matches (user_a, user_b) values
+  ('70000000-0000-0000-0000-000000000007', 'a0000000-0000-0000-0000-00000000000a'),
+  ('70000000-0000-0000-0000-000000000007', 'c0000000-0000-0000-0000-00000000000c');
+select pg_temp.check('a person can have several active matches',
+  (select count(*) from public.matches
+    where ended_at is null
+      and '70000000-0000-0000-0000-000000000007' in (user_a, user_b)) = 2);
+
 set role postgres;
 \echo ''
 \echo 'All access policy assertions passed.'

@@ -34,10 +34,12 @@ function Badge({ children, color = "stone" }: { children: React.ReactNode; color
 
 export function IntakeCard({
   intake,
+  activeMatches,
   selected,
   onSelect,
 }: {
   intake: IntakeWithProfile;
+  activeMatches: number;
   selected?: boolean;
   onSelect?: () => void;
 }) {
@@ -64,7 +66,16 @@ export function IntakeCard({
             <span className="ml-2 text-xs text-stone-400">(pseudonym)</span>
           )}
         </div>
-        <Badge color="blue">{matchPrefLabels[intake.match_preference] ?? intake.match_preference}</Badge>
+        <div className="flex gap-1.5">
+          {activeMatches === 0 ? (
+            <Badge color="amber">No matches yet</Badge>
+          ) : (
+            <Badge color="green">
+              {activeMatches} active {activeMatches === 1 ? "match" : "matches"}
+            </Badge>
+          )}
+          <Badge color="blue">{matchPrefLabels[intake.match_preference] ?? intake.match_preference}</Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
