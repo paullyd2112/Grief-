@@ -20,6 +20,7 @@ import { useVoiceMemo } from "../../../src/hooks/useVoiceMemo";
 import { containsContactInfo } from "../../../src/lib/contact-detect";
 import { sendErrorMessage } from "../../../src/lib/send-errors";
 import { VoiceBubble } from "../../../src/components/VoiceBubble";
+import { WorriedSheet } from "../../../src/components/WorriedSheet";
 import { supabase } from "../../../src/lib/supabase";
 import type { Message } from "../../../src/lib/types";
 
@@ -134,6 +135,7 @@ export default function ConversationScreen() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showWorried, setShowWorried] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [contactWarningText, setContactWarningText] = useState<string | null>(
     null
@@ -290,6 +292,10 @@ export default function ConversationScreen() {
             <TouchableOpacity
               onPress={() => {
                 Alert.alert(info.partnerName, undefined, [
+                  {
+                    text: "I'm worried about them",
+                    onPress: () => setShowWorried(true),
+                  },
                   ...(isEnded
                     ? []
                     : [
@@ -439,6 +445,17 @@ export default function ConversationScreen() {
         onClose={() => setShowReport(false)}
         onSubmit={handleReport}
         loading={reporting}
+      />
+
+      <WorriedSheet
+        visible={showWorried}
+        partnerName={info.partnerName}
+        conversationId={info.conversationId}
+        canMessage={!isEnded}
+        onClose={() => setShowWorried(false)}
+        onAddToMessage={(message) =>
+          setText((prev) => (prev.trim() ? `${prev}\n\n${message}` : message))
+        }
       />
     </>
   );

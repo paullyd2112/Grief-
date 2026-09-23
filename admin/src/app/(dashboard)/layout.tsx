@@ -19,6 +19,11 @@ export default async function DashboardLayout({
     .select("id", { count: "exact", head: true })
     .is("resolved_at", null);
 
+  const { count: openConcerns } = await supabase
+    .from("concerns")
+    .select("id", { count: "exact", head: true })
+    .is("handled_at", null);
+
   return (
     <div className="min-h-screen bg-stone-50">
       <nav className="border-b border-stone-200 bg-white">
@@ -34,6 +39,17 @@ export default async function DashboardLayout({
                   className="text-stone-600 hover:text-stone-900 transition"
                 >
                   Queue
+                </Link>
+                <Link
+                  href="/concerns"
+                  className="text-stone-600 hover:text-stone-900 transition flex items-center gap-1.5"
+                >
+                  Concerns
+                  {!!openConcerns && (
+                    <span className="bg-amber-500 text-white text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none">
+                      {openConcerns}
+                    </span>
+                  )}
                 </Link>
                 <Link
                   href="/reports"

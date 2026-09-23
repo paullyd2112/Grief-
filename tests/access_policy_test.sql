@@ -457,6 +457,72 @@ select pg_temp.check('a person can have several active matches',
     where ended_at is null
       and '70000000-0000-0000-0000-000000000007' in (user_a, user_b)) = 2);
 
+-- 23. "I'm worried about them": reaches operators, ends nothing, tells no one.
+insert into public.matches (id, user_a, user_b) values
+  ('aaaaaaaa-0000-0000-0000-000000000007',
+   '90000000-0000-0000-0000-000000000009', 'b0000000-0000-0000-0000-00000000000b');
+insert into public.conversations (id, match_id) values
+  ('cccccccc-0000-0000-0000-000000000007', 'aaaaaaaa-0000-0000-0000-000000000007');
+
+set role authenticated;
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000009';
+select public.raise_concern('cccccccc-0000-0000-0000-000000000007', 'they said they don''t see the point');
+select public.raise_concern('cccccccc-0000-0000-0000-000000000007', 'it''s getting worse');
+select pg_temp.check('raising a concern twice keeps one open concern',
+  (select count(*) from public.concerns) = 1);
+select pg_temp.check('the second raise updates the note',
+  (select note from public.concerns) = 'it''s getting worse');
+
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-00000000000b';
+select pg_temp.check('the person it is about cannot see the concern',
+  (select count(*) from public.concerns) = 0);
+
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+do $$
+begin
+  perform public.raise_concern('cccccccc-0000-0000-0000-000000000007', 'not mine');
+  raise exception 'FAIL: a non-participant raised a concern';
+exception when raise_exception then
+  if sqlerrm <> 'not a participant' then raise; end if;
+  raise notice 'PASS  only a participant can raise a concern';
+end $$;
+
+set role postgres;
+select pg_temp.check('the concern is about the other participant',
+  (select about_user from public.concerns)
+    = 'b0000000-0000-0000-0000-00000000000b');
+select pg_temp.check('a concern leaves the conversation open',
+  (select ended_at is null from public.matches
+    where id = 'aaaaaaaa-0000-0000-0000-000000000007'));
+select pg_temp.check('a concern blocks no one',
+  not exists (select 1 from public.blocks
+               where blocker_id = '90000000-0000-0000-0000-000000000009'));
+
+set role authenticated;
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000009';
+do $$
+begin
+  perform public.handle_concern((select id from public.concerns), 'closing it myself');
+  raise exception 'FAIL: a non-operator handled a concern';
+exception when raise_exception then
+  if sqlerrm <> 'not_admin' then raise; end if;
+  raise notice 'PASS  only operators can mark a concern handled';
+end $$;
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check('operators can see concerns',
+  (select count(*) from public.concerns) = 1);
+select public.handle_concern((select id from public.concerns), 'Reached out with support resources');
+set role postgres;
+select pg_temp.check('handling a concern is written to the access log',
+  exists (select 1 from public.access_log
+           where action = 'concern_handled'
+             and subject_user_id = 'b0000000-0000-0000-0000-00000000000b'));
+
+update public.concerns set purge_after = now() - interval '1 day';
+select pg_temp.check('expired concerns are purged',
+  public.purge_expired_concerns() = 1);
+
 set role postgres;
 \echo ''
 \echo 'All access policy assertions passed.'

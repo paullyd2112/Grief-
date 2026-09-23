@@ -24,6 +24,7 @@ which conversation content reaches an operator is a report.
 | Message *counts* and timestamps | Yes | Liveness — is this match working. Never content. |
 | Reported content + surrounding context | Yes | Only what the reporter's device submitted. |
 | Report/block counts per account | Yes | Behavioural safety signal that needs no content. |
+| A concern ("I'm worried about them") | Yes | Who is worried, about whom, and the note the worried person chose to write. Never the conversation. The person it's about is not told who raised it; when an operator marks it handled, that note appears in their access log. |
 
 ## What an operator CANNOT read
 
@@ -58,6 +59,7 @@ justification. The log is append-only. Users can request their own access log.
 | Data | Retention |
 |---|---|
 | Reported content (`reports.snapshot`) | 90 days from report, then hard-deleted |
+| Concerns | 90 days from being raised, then hard-deleted |
 | Reported content under legal hold | Held until the hold is lifted, then 90-day clock resumes |
 | Conversation deleted by either party | Removed for both parties immediately |
 | Voice memo audio in a deleted conversation | Unreadable immediately; files removed by the deleting device, with a daily sweep as backup |

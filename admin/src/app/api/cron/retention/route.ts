@@ -41,6 +41,11 @@ export async function GET(request: Request) {
   );
   if (purgeError) errors.push(`purge_expired_reports: ${purgeError.message}`);
 
+  const { data: purgedConcerns, error: concernError } = await supabase.rpc(
+    "purge_expired_concerns"
+  );
+  if (concernError) errors.push(`purge_expired_concerns: ${concernError.message}`);
+
   // 2. Audio left behind by recently deleted conversations.
   let sweptConversations = 0;
   const { data: deletedConvs, error: convError } = await supabase
@@ -105,7 +110,7 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json(
-    { purgedReports, sweptConversations, deletedAccounts, errors },
+    { purgedReports, purgedConcerns, sweptConversations, deletedAccounts, errors },
     { status: errors.length ? 500 : 200 }
   );
 }

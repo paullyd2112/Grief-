@@ -137,3 +137,16 @@ export async function unsuspendUser(params: { userId: string; justification: str
   });
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Close a concern. The note is written to the access log, which the person
+ * the concern is about can read, so it must never say who raised it.
+ */
+export async function handleConcern(params: { concernId: string; note: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("handle_concern", {
+    concern: params.concernId,
+    resolution_note: params.note,
+  });
+  if (error) throw new Error(error.message);
+}
