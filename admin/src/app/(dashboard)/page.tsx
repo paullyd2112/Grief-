@@ -39,7 +39,10 @@ export default async function QueuePage() {
   });
 
   const unmatched = (allIntakes as IntakeWithProfile[] | null)?.filter(
-    (i) => !matchedUserIds.has(i.user_id) && i.profiles.status === "active"
+    (i) =>
+      !matchedUserIds.has(i.user_id) &&
+      i.profiles.status === "active" &&
+      !i.profiles.deleted_at
   ) ?? [];
 
   const matched = (allIntakes as IntakeWithProfile[] | null)?.filter(

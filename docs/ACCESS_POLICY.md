@@ -60,6 +60,8 @@ justification. The log is append-only. Users can request their own access log.
 | Reported content (`reports.snapshot`) | 90 days from report, then hard-deleted |
 | Reported content under legal hold | Held until the hold is lifted, then 90-day clock resumes |
 | Conversation deleted by either party | Removed for both parties immediately |
+| Voice memo audio in a deleted conversation | Unreadable immediately; files removed by the deleting device, with a daily sweep as backup |
+| Account deleted by the user | Hidden and unmatched immediately; hard-deleted after 30 days unless they sign back in and keep it |
 | Intake data after account deletion | 30 days, then hard-deleted |
 | Database backups | 30 days |
 

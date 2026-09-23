@@ -27,7 +27,12 @@ export type MatchPreference =
   | "open_to_anyone";
 
 export type AccountStatus = "active" | "paused" | "suspended" | "deleted";
-export type MatchEndKind = "left" | "reported_and_left" | "deleted";
+export type MatchEndKind =
+  | "left"
+  | "reported_and_left"
+  | "deleted"
+  | "removed"
+  | "account_deleted";
 
 export interface Profile {
   id: string;
@@ -36,6 +41,7 @@ export interface Profile {
   date_of_birth: string;
   status: AccountStatus;
   created_at: string;
+  deleted_at: string | null;
 }
 
 export interface IntakeResponse {

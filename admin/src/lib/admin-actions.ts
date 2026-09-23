@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase-server";
  * append-only and visible to the subject user on request.
  */
 export async function logAccess(params: {
-  subjectUserId: string;
+  subjectUserId: string | null;
   action: string;
   justification: string;
   conversationId?: string;
@@ -94,7 +94,7 @@ export async function createMatch(params: {
 export async function resolveReport(params: {
   reportId: string;
   resolution: string;
-  reportedUserId: string;
+  reportedUserId: string | null;
 }) {
   const supabase = await createClient();
 
@@ -114,4 +114,26 @@ export async function resolveReport(params: {
     justification: params.resolution,
     reportId: params.reportId,
   });
+}
+
+/**
+ * Suspend an account: ends every match (partners get the neutral departure
+ * notice) and writes the justification to the access log, all in the database.
+ */
+export async function suspendUser(params: { userId: string; justification: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("suspend_user", {
+    target: params.userId,
+    justification: params.justification,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function unsuspendUser(params: { userId: string; justification: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("unsuspend_user", {
+    target: params.userId,
+    justification: params.justification,
+  });
+  if (error) throw new Error(error.message);
 }

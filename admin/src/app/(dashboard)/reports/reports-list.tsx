@@ -2,12 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { resolveReport, logAccess } from "@/lib/admin-actions";
+import {
+  resolveReport,
+  logAccess,
+  suspendUser,
+  unsuspendUser,
+} from "@/lib/admin-actions";
+import type { AccountStatus } from "@/lib/types";
 
-interface ReportRow {
+// Reporter and reported are null once that account has been hard-deleted.
+export interface ReportRow {
   id: string;
-  reporter_id: string;
-  reported_user_id: string;
+  reporter_id: string | null;
+  reported_user_id: string | null;
   conversation_id: string | null;
   reason: string | null;
   snapshot: Record<string, unknown>;
@@ -17,11 +24,22 @@ interface ReportRow {
   resolved_at: string | null;
   resolution: string | null;
   reporter: { display_name: string } | null;
-  reported: { display_name: string } | null;
+  reported: { display_name: string; status: AccountStatus } | null;
 }
 
-function SnapshotViewer({ snapshot }: { snapshot: Record<string, unknown> }) {
+function SnapshotViewer({ report }: { report: ReportRow }) {
+  const { snapshot } = report;
   const messages = Array.isArray(snapshot.messages) ? snapshot.messages : [];
+  // The app records sender_id only; name it from the report's two parties.
+  const nameFor = (senderId: unknown) => {
+    if (senderId && senderId === report.reporter_id) {
+      return report.reporter?.display_name ?? "Reporter";
+    }
+    if (senderId && senderId === report.reported_user_id) {
+      return report.reported?.display_name ?? "Reported user";
+    }
+    return "Unknown";
+  };
   if (messages.length === 0) {
     return (
       <p className="text-xs text-stone-400 italic">No messages in snapshot</p>
@@ -31,7 +49,7 @@ function SnapshotViewer({ snapshot }: { snapshot: Record<string, unknown> }) {
   return (
     <div className="space-y-2 max-h-64 overflow-y-auto">
       {messages.map((msg: Record<string, unknown>, i: number) => {
-        const senderName = typeof msg.sender_name === "string" ? msg.sender_name : "Unknown";
+        const senderName = nameFor(msg.sender_id);
         const body = typeof msg.body === "string" ? msg.body : (msg.kind === "voice" ? "[voice memo]" : "");
         const ts = typeof msg.created_at === "string" ? msg.created_at : null;
         return (
@@ -52,18 +70,62 @@ function SnapshotViewer({ snapshot }: { snapshot: Record<string, unknown> }) {
   );
 }
 
+function JustifiedAction({
+  placeholder,
+  buttonLabel,
+  danger,
+  onSubmit,
+}: {
+  placeholder: string;
+  buttonLabel: string;
+  danger?: boolean;
+  onSubmit: (justification: string) => void;
+}) {
+  const [text, setText] = useState("");
+  return (
+    <div className="mt-3 pt-3 border-t border-stone-200 space-y-2">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={2}
+        placeholder={placeholder}
+        className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 resize-none"
+      />
+      <button
+        onClick={() => {
+          if (text.trim()) onSubmit(text.trim());
+        }}
+        disabled={!text.trim()}
+        className={`${
+          danger ? "bg-red-600 hover:bg-red-700" : "bg-stone-900 hover:bg-stone-800"
+        } text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 transition`}
+      >
+        {buttonLabel}
+      </button>
+    </div>
+  );
+}
+
 function ReportCard({
   report,
   onResolve,
+  onSuspend,
+  onUnsuspend,
 }: {
   report: ReportRow;
   onResolve: (id: string, resolution: string) => void;
+  onSuspend: (userId: string, justification: string) => void;
+  onUnsuspend: (userId: string, justification: string) => void;
 }) {
   const [showSnapshot, setShowSnapshot] = useState(false);
-  const [resolution, setResolution] = useState("");
-  const [showResolveForm, setShowResolveForm] = useState(false);
+  const [openForm, setOpenForm] = useState<"resolve" | "suspend" | "unsuspend" | null>(null);
+  const toggleForm = (form: "resolve" | "suspend" | "unsuspend") =>
+    setOpenForm((current) => (current === form ? null : form));
 
   const isOpen = !report.resolved_at;
+  const reportedId = report.reported_user_id;
+  const reportedName = report.reported?.display_name ?? "this user";
+  const isSuspended = report.reported?.status === "suspended";
 
   return (
     <div
@@ -99,6 +161,11 @@ function ReportCard({
             <span className="font-medium text-stone-900">
               {report.reported?.display_name ?? "Unknown"}
             </span>
+            {isSuspended && (
+              <span className="ml-2 inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-stone-800 text-white">
+                Suspended
+              </span>
+            )}
           </p>
         </div>
         <span className="text-xs text-stone-400">
@@ -131,39 +198,65 @@ function ReportCard({
         </button>
         {isOpen && (
           <button
-            onClick={setShowResolveForm.bind(null, !showResolveForm)}
+            onClick={() => toggleForm("resolve")}
             className="text-stone-500 hover:text-stone-700 underline underline-offset-2"
           >
             Resolve
+          </button>
+        )}
+        {reportedId && !isSuspended && (
+          <button
+            onClick={() => toggleForm("suspend")}
+            className="text-red-600 hover:text-red-800 underline underline-offset-2"
+          >
+            Suspend {reportedName}
+          </button>
+        )}
+        {reportedId && isSuspended && (
+          <button
+            onClick={() => toggleForm("unsuspend")}
+            className="text-stone-500 hover:text-stone-700 underline underline-offset-2"
+          >
+            Lift suspension
           </button>
         )}
       </div>
 
       {showSnapshot && (
         <div className="mt-3 pt-3 border-t border-stone-200">
-          <SnapshotViewer snapshot={report.snapshot} />
+          <SnapshotViewer report={report} />
         </div>
       )}
 
-      {showResolveForm && isOpen && (
-        <div className="mt-3 pt-3 border-t border-stone-200 space-y-2">
-          <textarea
-            value={resolution}
-            onChange={(e) => setResolution(e.target.value)}
-            rows={2}
-            placeholder="Resolution notes (required)"
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 resize-none"
-          />
-          <button
-            onClick={() => {
-              if (resolution.trim()) onResolve(report.id, resolution.trim());
-            }}
-            disabled={!resolution.trim()}
-            className="bg-stone-900 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-stone-800 disabled:opacity-50 transition"
-          >
-            Mark resolved
-          </button>
-        </div>
+      {openForm === "resolve" && isOpen && (
+        <JustifiedAction
+          placeholder="Resolution notes (required)"
+          buttonLabel="Mark resolved"
+          onSubmit={(text) => onResolve(report.id, text)}
+        />
+      )}
+
+      {openForm === "suspend" && reportedId && (
+        <JustifiedAction
+          placeholder={`Why you're suspending ${reportedName} (required, goes in the access log). Their conversations end and their partners see a neutral "left the conversation" notice.`}
+          buttonLabel={`Suspend ${reportedName}`}
+          danger
+          onSubmit={(text) => {
+            setOpenForm(null);
+            onSuspend(reportedId, text);
+          }}
+        />
+      )}
+
+      {openForm === "unsuspend" && reportedId && (
+        <JustifiedAction
+          placeholder="Why you're lifting the suspension (required, goes in the access log)"
+          buttonLabel="Lift suspension"
+          onSubmit={(text) => {
+            setOpenForm(null);
+            onUnsuspend(reportedId, text);
+          }}
+        />
       )}
 
       <div className="mt-3 text-xs text-stone-400">
@@ -210,6 +303,24 @@ export function ReportsList({ reports }: { reports: ReportRow[] }) {
     });
   };
 
+  const runAction = (action: () => Promise<void>) => {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await action();
+        router.refresh();
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Something went wrong");
+      }
+    });
+  };
+
+  const handleSuspend = (userId: string, justification: string) =>
+    runAction(() => suspendUser({ userId, justification }));
+
+  const handleUnsuspend = (userId: string, justification: string) =>
+    runAction(() => unsuspendUser({ userId, justification }));
+
   return (
     <div>
       <div className="flex gap-1 mb-4">
@@ -237,7 +348,7 @@ export function ReportsList({ reports }: { reports: ReportRow[] }) {
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
       {isPending && (
-        <p className="text-sm text-stone-500 mb-3">Resolving…</p>
+        <p className="text-sm text-stone-500 mb-3">Saving…</p>
       )}
 
       {shown.length === 0 ? (
@@ -251,6 +362,8 @@ export function ReportsList({ reports }: { reports: ReportRow[] }) {
               key={report.id}
               report={report}
               onResolve={handleResolve}
+              onSuspend={handleSuspend}
+              onUnsuspend={handleUnsuspend}
             />
           ))}
         </div>

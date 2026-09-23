@@ -25,6 +25,10 @@ function GatedSlot() {
       if (path !== "(auth)/underage") router.replace("/(auth)/underage");
     } else if (!gate.hasProfile) {
       if (path !== "(auth)/create-profile") router.replace("/(auth)/create-profile");
+    } else if (gate.deletedAt) {
+      if (path !== "(auth)/account-deleted") router.replace("/(auth)/account-deleted");
+    } else if (gate.suspended) {
+      if (path !== "(auth)/suspended") router.replace("/(auth)/suspended");
     } else if (inAuthGroup) {
       router.replace("/(app)");
     }

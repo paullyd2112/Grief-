@@ -8,6 +8,8 @@ interface GateState {
   dobAttempted: boolean;
   dobPassed: boolean;
   hasProfile: boolean;
+  suspended: boolean;
+  deletedAt: string | null;
 }
 
 interface GateContextValue {
@@ -22,13 +24,19 @@ const GateContext = createContext<GateContextValue | null>(null);
 async function fetchGate(userId: string): Promise<GateState> {
   const [{ data: dob }, { data: profile }] = await Promise.all([
     supabase.from("dob_attempts").select("passed").eq("user_id", userId).maybeSingle(),
-    supabase.from("profiles").select("id").eq("id", userId).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("id, status, deleted_at")
+      .eq("id", userId)
+      .maybeSingle(),
   ]);
   return {
     userId,
     dobAttempted: !!dob,
     dobPassed: !!dob?.passed,
     hasProfile: !!profile,
+    suspended: profile?.status === "suspended",
+    deletedAt: profile?.deleted_at ?? null,
   };
 }
 

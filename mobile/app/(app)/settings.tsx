@@ -1,18 +1,111 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native";
+import { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../src/hooks/useAuth";
 import { useProfile } from "../../src/hooks/useProfile";
+import { supabase } from "../../src/lib/supabase";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
-  const { profile } = useProfile(user?.id);
+  const { profile, refetch } = useProfile(user?.id);
   const router = useRouter();
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const saveName = async () => {
+    if (!user || nameDraft === null) return;
+    const name = nameDraft.trim();
+    if (name.length < 2 || name.length > 32) {
+      Alert.alert("Name must be between 2 and 32 characters.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: name })
+      .eq("id", user.id);
+    setSaving(false);
+    if (error) {
+      Alert.alert("Something went wrong", "Please try again.");
+      return;
+    }
+    await refetch();
+    setNameDraft(null);
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      "Delete your account?",
+      "Any conversations you're in will end, and you'll be signed out. Your account and everything in it are permanently deleted after 30 days. Signing back in before then lets you keep it.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await supabase.rpc("delete_my_account");
+            if (error) {
+              Alert.alert("Something went wrong", "Please try again.");
+              return;
+            }
+            await signOut();
+          },
+        },
+      ]
+    );
+  };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.card}>
-        <Text style={styles.label}>Display name</Text>
-        <Text style={styles.value}>{profile?.display_name ?? "—"}</Text>
+        <View style={styles.cardHeader}>
+          <Text style={styles.label}>Display name</Text>
+          {nameDraft === null ? (
+            <TouchableOpacity onPress={() => setNameDraft(profile?.display_name ?? "")}>
+              <Text style={styles.editLink}>Edit</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={() => setNameDraft(null)} disabled={saving}>
+              <Text style={styles.editLink}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {nameDraft === null ? (
+          <Text style={styles.value}>{profile?.display_name ?? "—"}</Text>
+        ) : (
+          <View style={styles.editRow}>
+            <TextInput
+              style={styles.nameInput}
+              value={nameDraft}
+              onChangeText={setNameDraft}
+              autoFocus
+              autoCapitalize="words"
+              maxLength={32}
+              returnKeyType="done"
+              onSubmitEditing={saveName}
+              editable={!saving}
+            />
+            <TouchableOpacity
+              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+              onPress={saveName}
+              disabled={saving}
+            >
+              <Text style={styles.saveButtonText}>{saving ? "..." : "Save"}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <View style={styles.card}>
@@ -89,6 +182,10 @@ export default function SettingsScreen() {
         <Text style={styles.dangerText}>Sign out</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity style={styles.deleteButton} onPress={confirmDeleteAccount}>
+        <Text style={styles.deleteText}>Delete account</Text>
+      </TouchableOpacity>
+
       <Text style={styles.footer}>
         If you're in crisis, call or text 988.
       </Text>
@@ -122,6 +219,55 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 17,
     color: "#1C1917",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  editLink: {
+    fontSize: 14,
+    color: "#3B82F6",
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  editRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  nameInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#D6D3D1",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 17,
+    color: "#1C1917",
+  },
+  saveButton: {
+    backgroundColor: "#3B82F6",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  deleteButton: {
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  deleteText: {
+    color: "#DC2626",
+    fontSize: 15,
   },
   sectionHeader: {
     marginTop: 20,

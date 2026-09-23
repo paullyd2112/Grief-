@@ -41,7 +41,6 @@ function MessageBubble({
     return (
       <VoiceBubble
         voiceMemoId={message.voice_memo_id}
-        durationMs={0}
         isOwn={isOwn}
         timestamp={message.created_at}
       />
@@ -251,6 +250,13 @@ export default function ConversationScreen() {
           text: "Delete for both",
           style: "destructive",
           onPress: async () => {
+            // Audio must go first: once the conversation is deleted, storage
+            // rules stop letting either participant see the files.
+            const bucket = supabase.storage.from("voice-memos");
+            const { data: files } = await bucket.list(id, { limit: 1000 });
+            if (files?.length) {
+              await bucket.remove(files.map((f) => `${id}/${f.name}`));
+            }
             await supabase.rpc("delete_conversation", { conv: id });
             router.replace("/(app)/");
           },

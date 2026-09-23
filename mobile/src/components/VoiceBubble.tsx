@@ -12,26 +12,26 @@ function formatDuration(ms: number): string {
 
 export function VoiceBubble({
   voiceMemoId,
-  durationMs,
   isOwn,
   timestamp,
 }: {
   voiceMemoId: string;
-  durationMs: number;
   isOwn: boolean;
   timestamp: string;
 }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [storedDurationMs, setStoredDurationMs] = useState(0);
 
   useEffect(() => {
     const load = async () => {
       const { data: memo } = await supabase
         .from("voice_memos")
-        .select("storage_path")
+        .select("storage_path, duration_ms")
         .eq("id", voiceMemoId)
         .single();
 
       if (!memo) return;
+      setStoredDurationMs(memo.duration_ms);
 
       const { data } = await supabase.storage
         .from("voice-memos")
@@ -48,16 +48,20 @@ export function VoiceBubble({
 
   const isPlaying = status.playing;
   const currentPosition = status.currentTime ?? 0;
-  const progress =
-    durationMs > 0 ? Math.min(currentPosition / (durationMs / 1000), 1) : 0;
+  const durationSec = status.duration > 0 ? status.duration : storedDurationMs / 1000;
+  const progress = durationSec > 0 ? Math.min(currentPosition / durationSec, 1) : 0;
 
-  const handlePress = () => {
+  const handlePress = async () => {
     if (!audioUrl) return;
     if (isPlaying) {
       player.pause();
-    } else {
-      player.play();
+      return;
     }
+    // A finished player stays parked at the end; rewind before replaying.
+    if (durationSec > 0 && currentPosition >= durationSec - 0.1) {
+      await player.seekTo(0);
+    }
+    player.play();
   };
 
   return (
@@ -83,7 +87,7 @@ export function VoiceBubble({
           >
             {isPlaying
               ? formatDuration(currentPosition * 1000)
-              : formatDuration(durationMs)}
+              : formatDuration(durationSec * 1000)}
           </Text>
         </View>
       </TouchableOpacity>

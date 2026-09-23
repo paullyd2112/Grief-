@@ -1,23 +1,7 @@
 import { createClient } from "@/lib/supabase-server";
-import { ReportsList } from "./reports-list";
+import { ReportsList, type ReportRow } from "./reports-list";
 
 export const dynamic = "force-dynamic";
-
-interface ReportRow {
-  id: string;
-  reporter_id: string;
-  reported_user_id: string;
-  conversation_id: string | null;
-  reason: string | null;
-  snapshot: Record<string, unknown>;
-  created_at: string;
-  purge_after: string;
-  legal_hold: boolean;
-  resolved_at: string | null;
-  resolution: string | null;
-  reporter: { display_name: string } | null;
-  reported: { display_name: string } | null;
-}
 
 export default async function ReportsPage() {
   const supabase = await createClient();
@@ -25,7 +9,7 @@ export default async function ReportsPage() {
   const { data: reports } = await supabase
     .from("reports")
     .select(
-      "id, reporter_id, reported_user_id, conversation_id, reason, snapshot, created_at, purge_after, legal_hold, resolved_at, resolution, reporter:profiles!reporter_id(display_name), reported:profiles!reported_user_id(display_name)"
+      "id, reporter_id, reported_user_id, conversation_id, reason, snapshot, created_at, purge_after, legal_hold, resolved_at, resolution, reporter:profiles!reporter_id(display_name), reported:profiles!reported_user_id(display_name, status)"
     )
     .order("created_at", { ascending: false });
 

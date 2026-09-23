@@ -271,6 +271,183 @@ select pg_temp.check('report is filed with no alert webhook configured',
   (select count(*) from public.reports
     where conversation_id = 'cccccccc-0000-0000-0000-000000000003') = 1);
 
+-- --- fixtures for 17-21: three fresh pairs ----------------------------------
+set role postgres;
+insert into auth.users (id) values
+  ('70000000-0000-0000-0000-000000000007'), ('80000000-0000-0000-0000-000000000008'),
+  ('90000000-0000-0000-0000-000000000009'), ('a0000000-0000-0000-0000-00000000000a'),
+  ('b0000000-0000-0000-0000-00000000000b'), ('c0000000-0000-0000-0000-00000000000c');
+insert into public.profiles (id, display_name, date_of_birth) values
+  ('70000000-0000-0000-0000-000000000007', 'casey',  '1990-01-01'),
+  ('80000000-0000-0000-0000-000000000008', 'morgan', '1990-01-01'),
+  ('90000000-0000-0000-0000-000000000009', 'drew',   '1990-01-01'),
+  ('a0000000-0000-0000-0000-00000000000a', 'quinn',  '1990-01-01'),
+  ('b0000000-0000-0000-0000-00000000000b', 'avery',  '1990-01-01'),
+  ('c0000000-0000-0000-0000-00000000000c', 'rowan',  '1990-01-01');
+insert into public.matches (id, user_a, user_b) values
+  ('aaaaaaaa-0000-0000-0000-000000000004', '70000000-0000-0000-0000-000000000007', '80000000-0000-0000-0000-000000000008'),
+  ('aaaaaaaa-0000-0000-0000-000000000005', '90000000-0000-0000-0000-000000000009', 'a0000000-0000-0000-0000-00000000000a'),
+  ('aaaaaaaa-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-00000000000b', 'c0000000-0000-0000-0000-00000000000c');
+insert into public.conversations (id, match_id) values
+  ('cccccccc-0000-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000004'),
+  ('cccccccc-0000-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000005'),
+  ('cccccccc-0000-0000-0000-000000000006', 'aaaaaaaa-0000-0000-0000-000000000006');
+insert into storage.objects (bucket_id, name) values
+  ('voice-memos', 'cccccccc-0000-0000-0000-000000000004/1.m4a'),
+  ('voice-memos', 'cccccccc-0000-0000-0000-000000000003/1.m4a');
+
+-- 17. Voice memo audio follows the same rule as messages.
+set role authenticated;
+set request.jwt.claim.sub = '70000000-0000-0000-0000-000000000007';
+select pg_temp.check('participant sees only their own conversation''s audio',
+  (select count(*) from storage.objects where bucket_id = 'voice-memos') = 1);
+
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select pg_temp.check('non-participant sees no audio',
+  (select count(*) from storage.objects where bucket_id = 'voice-memos') = 0);
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check('OPERATOR CANNOT LIST OR DOWNLOAD AUDIO',
+  (select count(*) from storage.objects where bucket_id = 'voice-memos') = 0);
+
+set request.jwt.claim.sub = '70000000-0000-0000-0000-000000000007';
+insert into storage.objects (bucket_id, name)
+values ('voice-memos', 'cccccccc-0000-0000-0000-000000000004/2.m4a');
+do $$
+begin
+  insert into storage.objects (bucket_id, name)
+  values ('voice-memos', 'cccccccc-0000-0000-0000-000000000003/2.m4a');
+  raise exception 'FAIL: uploaded audio into someone else''s conversation';
+exception when insufficient_privilege then
+  raise notice 'PASS  cannot upload audio into someone else''s conversation';
+end $$;
+
+select public.delete_conversation('cccccccc-0000-0000-0000-000000000004');
+set request.jwt.claim.sub = '80000000-0000-0000-0000-000000000008';
+select pg_temp.check('audio is unreadable once the conversation is deleted',
+  (select count(*) from storage.objects where bucket_id = 'voice-memos') = 0);
+
+-- 18. New messages are published for live delivery.
+set role postgres;
+select pg_temp.check('messages are in the realtime publication',
+  exists (select 1 from pg_publication_tables
+           where pubname = 'supabase_realtime' and tablename = 'messages'));
+
+-- 19. Suspension.
+set role authenticated;
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000009';
+do $$
+begin
+  perform public.suspend_user('a0000000-0000-0000-0000-00000000000a', 'retaliation');
+  raise exception 'FAIL: a non-operator suspended someone';
+exception when raise_exception then
+  if sqlerrm <> 'not_admin' then raise; end if;
+  raise notice 'PASS  only operators can suspend';
+end $$;
+do $$
+begin
+  perform private.end_matches_for(
+    'a0000000-0000-0000-0000-00000000000a', '90000000-0000-0000-0000-000000000009', 'left');
+  raise exception 'FAIL: users can call the internal end-matches helper';
+exception when insufficient_privilege then
+  raise notice 'PASS  the internal end-matches helper is not callable by users';
+end $$;
+
+set role postgres;
+update public.profiles set status = 'suspended'
+ where id = '90000000-0000-0000-0000-000000000009';
+set role authenticated;
+do $$
+begin
+  insert into public.messages (conversation_id, sender_id, kind, body)
+  values ('cccccccc-0000-0000-0000-000000000005',
+          '90000000-0000-0000-0000-000000000009', 'text', 'still here');
+  raise exception 'FAIL: suspended user sent a message';
+exception when insufficient_privilege then
+  raise notice 'PASS  a suspended user cannot send messages';
+end $$;
+set role postgres;
+update public.profiles set status = 'active'
+ where id = '90000000-0000-0000-0000-000000000009';
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.suspend_user('90000000-0000-0000-0000-000000000009', 'confirmed harassment');
+set role postgres;
+select pg_temp.check('suspension ends the user''s matches',
+  (select end_kind from public.matches
+    where id = 'aaaaaaaa-0000-0000-0000-000000000005') = 'removed');
+select pg_temp.check('their partner gets the neutral departure notice',
+  (select leaver_name from public.match_end_notices
+    where match_id = 'aaaaaaaa-0000-0000-0000-000000000005'
+      and recipient_id = 'a0000000-0000-0000-0000-00000000000a') = 'drew');
+select pg_temp.check('suspension is written to the access log',
+  exists (select 1 from public.access_log
+           where subject_user_id = '90000000-0000-0000-0000-000000000009'
+             and action = 'user_suspended'));
+do $$
+begin
+  insert into public.matches (user_a, user_b) values
+    ('90000000-0000-0000-0000-000000000009', 'c0000000-0000-0000-0000-00000000000c');
+  raise exception 'FAIL: matched a suspended user';
+exception when raise_exception then
+  if sqlerrm not like 'inactive_user%' then raise; end if;
+  raise notice 'PASS  a suspended user cannot be matched';
+end $$;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.unsuspend_user('90000000-0000-0000-0000-000000000009', 'appeal accepted');
+set role postgres;
+select pg_temp.check('an operator can lift a suspension',
+  (select status from public.profiles
+    where id = '90000000-0000-0000-0000-000000000009') = 'active');
+
+-- 20. Deleting your account.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-00000000000b';
+select public.delete_my_account();
+set role postgres;
+select pg_temp.check('deleting an account marks it deleted',
+  (select deleted_at is not null from public.profiles
+    where id = 'b0000000-0000-0000-0000-00000000000b'));
+select pg_temp.check('deleting an account ends its matches',
+  (select end_kind from public.matches
+    where id = 'aaaaaaaa-0000-0000-0000-000000000006') = 'account_deleted');
+select pg_temp.check('the partner is told they left, nothing more',
+  (select count(*) from public.match_end_notices
+    where match_id = 'aaaaaaaa-0000-0000-0000-000000000006'
+      and recipient_id = 'c0000000-0000-0000-0000-00000000000c') = 1);
+do $$
+begin
+  insert into public.matches (user_a, user_b) values
+    ('70000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-00000000000b');
+  raise exception 'FAIL: matched an account being deleted';
+exception when raise_exception then
+  if sqlerrm not like 'inactive_user%' then raise; end if;
+  raise notice 'PASS  an account being deleted cannot be matched';
+end $$;
+
+set role authenticated;
+select public.restore_my_account();
+set role postgres;
+select pg_temp.check('signing back in can keep the account',
+  (select deleted_at is null from public.profiles
+    where id = 'b0000000-0000-0000-0000-00000000000b'));
+
+-- 21. Hard deletion works for someone who left, deleted, reported and was
+--     reported, and the report outlives them.
+delete from auth.users where id in (
+  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-2222-2222-222222222222');
+select pg_temp.check('hard deletion succeeds for a user with history',
+  not exists (select 1 from public.profiles
+               where id in ('11111111-1111-1111-1111-111111111111',
+                            '22222222-2222-2222-2222-222222222222')));
+select pg_temp.check('the held report survives its reporter and subject',
+  (select count(*) from public.reports
+    where legal_hold and reporter_id is null and reported_user_id is null) = 1);
+
 set role postgres;
 \echo ''
 \echo 'All access policy assertions passed.'
