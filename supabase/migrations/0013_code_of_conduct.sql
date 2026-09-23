@@ -148,3 +148,12 @@ $$;
 
 alter table public.voice_memos drop column transcript;
 alter table public.voice_memos drop column transcript_status;
+
+-- ---------------------------------------------------------------------------
+-- Function privileges (same rules as 0012)
+-- ---------------------------------------------------------------------------
+
+revoke execute on function public.block_user(uuid), public.warn_user(uuid, text)
+  from public, anon;
+grant execute on function public.block_user(uuid), public.warn_user(uuid, text)
+  to authenticated;

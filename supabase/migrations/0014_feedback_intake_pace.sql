@@ -78,3 +78,7 @@ $$;
 create trigger feedback_notify
   after insert on public.feedback
   for each row execute function public.notify_feedback_sent();
+
+-- Trigger functions are never called directly (see 0012).
+revoke execute on function public.guard_feedback(), public.notify_feedback_sent()
+  from public, anon, authenticated;

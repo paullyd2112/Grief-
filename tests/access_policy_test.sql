@@ -597,7 +597,7 @@ select pg_temp.check('operators still see concern handling in the log',
     where action in ('concern_handled', 'check_in_sent')) = 2);
 set role postgres;
 
--- 26. Code of Conduct: re-matching, blocking, reporting after leaving, warnings.
+-- 27. Code of Conduct: re-matching, blocking, reporting after leaving, warnings.
 insert into auth.users (id) values
   ('d0000000-0000-0000-0000-00000000000d'),
   ('e0000000-0000-0000-0000-00000000000e'),
@@ -759,13 +759,30 @@ select pg_temp.check('sending a warning is written to the access log',
            where action = 'user_warned'
              and subject_user_id = 'd0000000-0000-0000-0000-00000000000d'));
 
+set role anon;
+do $$
+begin
+  perform public.block_user('cccccccc-0000-0000-0000-000000000009');
+  raise exception 'FAIL: block_user callable signed out';
+exception when insufficient_privilege then
+  raise notice 'PASS  signed-out callers cannot block';
+end $$;
+do $$
+begin
+  perform public.warn_user(gen_random_uuid(), 'x');
+  raise exception 'FAIL: warn_user callable signed out';
+exception when insufficient_privilege then
+  raise notice 'PASS  signed-out callers cannot warn';
+end $$;
+set role postgres;
+
 -- No transcription.
 select pg_temp.check('voice memos have no transcript columns',
   not exists (select 1 from information_schema.columns
                where table_schema = 'public' and table_name = 'voice_memos'
                  and column_name like 'transcript%'));
 
--- 27. Intake pace and topics to avoid.
+-- 28. Intake pace and topics to avoid.
 set role authenticated;
 set request.jwt.claim.sub = 'f0000000-0000-0000-0000-00000000000f';
 insert into public.intake_responses
@@ -787,7 +804,7 @@ exception when check_violation then
   raise notice 'PASS  talk frequency only takes known values';
 end $$;
 
--- 28. Feedback.
+-- 29. Feedback.
 set role authenticated;
 set request.jwt.claim.sub = 'f0000000-0000-0000-0000-00000000000f';
 insert into public.feedback (body) values ('Would love a way to mute notifications.');
