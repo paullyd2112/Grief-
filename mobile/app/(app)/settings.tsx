@@ -154,6 +154,14 @@ export default function SettingsScreen() {
         <Text style={styles.linkArrow}>›</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.linkRow}
+        onPress={() => router.push("/(app)/feedback")}
+      >
+        <Text style={styles.linkText}>Send feedback</Text>
+        <Text style={styles.linkArrow}>›</Text>
+      </TouchableOpacity>
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Privacy</Text>
       </View>

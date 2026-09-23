@@ -173,3 +173,12 @@ export async function sendCheckIn(params: { concernId: string }) {
   const { error } = await supabase.rpc("send_check_in", { concern: params.concernId });
   if (error) throw new Error(error.message);
 }
+
+export async function markFeedbackRead(params: { feedbackId: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("feedback")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", params.feedbackId);
+  if (error) throw new Error(error.message);
+}

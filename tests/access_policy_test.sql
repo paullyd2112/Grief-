@@ -745,6 +745,84 @@ select pg_temp.check('voice memos have no transcript columns',
                where table_schema = 'public' and table_name = 'voice_memos'
                  and column_name like 'transcript%'));
 
+-- 27. Intake pace and topics to avoid.
+set role authenticated;
+set request.jwt.claim.sub = 'f0000000-0000-0000-0000-00000000000f';
+insert into public.intake_responses
+  (user_id, relationship, time_since_loss, match_preference, talk_frequency, avoid_topics)
+values
+  ('f0000000-0000-0000-0000-00000000000f', 'friend', '1–2 years', 'open_to_anyone',
+   'on_hard_days', 'religion');
+set role postgres;
+select pg_temp.check('intake records how often someone wants to talk',
+  (select talk_frequency = 'on_hard_days' and avoid_topics = 'religion'
+     from public.intake_responses
+    where user_id = 'f0000000-0000-0000-0000-00000000000f'));
+do $$
+begin
+  update public.intake_responses set talk_frequency = 'hourly'
+   where user_id = 'f0000000-0000-0000-0000-00000000000f';
+  raise exception 'FAIL: accepted an unknown talk frequency';
+exception when check_violation then
+  raise notice 'PASS  talk frequency only takes known values';
+end $$;
+
+-- 28. Feedback.
+set role authenticated;
+set request.jwt.claim.sub = 'f0000000-0000-0000-0000-00000000000f';
+insert into public.feedback (body) values ('Would love a way to mute notifications.');
+select pg_temp.check('a member can send feedback',
+  (select count(*) from public.feedback) = 1);
+do $$
+begin
+  insert into public.feedback (user_id, body)
+  values ('e0000000-0000-0000-0000-00000000000e', 'pretending to be eli');
+  raise exception 'FAIL: sent feedback as someone else';
+exception when insufficient_privilege then
+  raise notice 'PASS  feedback can only be sent as yourself';
+end $$;
+do $$
+begin
+  update public.feedback set body = 'changed';
+  raise exception 'FAIL: a member edited feedback';
+exception when insufficient_privilege then
+  raise notice 'PASS  a member cannot edit sent feedback';
+end $$;
+do $$
+begin
+  delete from public.feedback;
+  raise exception 'FAIL: a member deleted feedback';
+exception when insufficient_privilege then
+  raise notice 'PASS  a member cannot delete sent feedback';
+end $$;
+do $$
+begin
+  for i in 1..9 loop
+    insert into public.feedback (body) values ('more ' || i);
+  end loop;
+  insert into public.feedback (body) values ('one too many');
+  raise exception 'FAIL: feedback was not rate limited';
+exception when raise_exception then
+  if sqlerrm not like 'rate_limited%' then raise; end if;
+  raise notice 'PASS  feedback is capped at 10 a day';
+end $$;
+
+set request.jwt.claim.sub = 'e0000000-0000-0000-0000-00000000000e';
+select pg_temp.check('members cannot read each other''s feedback',
+  (select count(*) from public.feedback) = 0);
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check('operators can read feedback',
+  (select count(*) from public.feedback) = 1);
+update public.feedback set read_at = now();
+select pg_temp.check('operators can mark feedback read',
+  (select read_at is not null from public.feedback));
+
+set role postgres;
+delete from auth.users where id = 'f0000000-0000-0000-0000-00000000000f';
+select pg_temp.check('feedback is deleted with the account',
+  (select count(*) from public.feedback) = 0);
+
 set role postgres;
 \echo ''
 \echo 'All access policy assertions passed.'

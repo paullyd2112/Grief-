@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { IntakeCard } from "@/components/intake-card";
+import { IntakeCard, TALK_FREQUENCY_LABELS } from "@/components/intake-card";
 import { createMatch, logAccess } from "@/lib/admin-actions";
 import { pairKey } from "@/lib/pair-key";
 import type { IntakeWithProfile } from "@/lib/types";
@@ -139,6 +139,18 @@ export function MatchingQueue({
                   <span className="text-stone-500">Pref:</span>{" "}
                   {intake.match_preference.replace(/_/g, " ")}
                 </p>
+                {intake.talk_frequency && (
+                  <p>
+                    <span className="text-stone-500">Pace:</span>{" "}
+                    {TALK_FREQUENCY_LABELS[intake.talk_frequency]}
+                  </p>
+                )}
+                {intake.avoid_topics && (
+                  <p>
+                    <span className="text-stone-500">Avoid:</span>{" "}
+                    {intake.avoid_topics}
+                  </p>
+                )}
                 {intake.free_text && (
                   <p className="italic text-stone-600 mt-2 text-xs">
                     &ldquo;{intake.free_text}&rdquo;

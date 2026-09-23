@@ -127,6 +127,18 @@ Timed suspensions and a distinct permanent-ban state are not built yet.
 home screen. Messages are not scanned for crisis language. The crisis screen
 says listing a resource is not an endorsement.
 
+### D18. Feedback
+**Decided.** Members send feedback from the app (home screen footer and
+Settings). Every piece is read by a person in the admin console's Feedback
+page. Capped at 10 a day per member, deleted with the account, and the ops
+alert carries no content.
+
+### D19. Intake: pace and topics to avoid
+**Decided.** Two optional questions: how often someone wants to talk, and
+anything they'd rather not discuss. Like the rest of intake, only the operator
+sees them, for matching; the match does not. The screen says so and suggests
+telling the match directly.
+
 ---
 
 ## Open

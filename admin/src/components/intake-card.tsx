@@ -1,4 +1,4 @@
-import type { IntakeWithProfile } from "@/lib/types";
+import type { IntakeWithProfile, TalkFrequency } from "@/lib/types";
 
 function Label({ children }: { children: React.ReactNode }) {
   return <span className="text-xs font-medium text-stone-500 uppercase tracking-wide">{children}</span>;
@@ -31,6 +31,14 @@ function Badge({ children, color = "stone" }: { children: React.ReactNode; color
     </span>
   );
 }
+
+export const TALK_FREQUENCY_LABELS: Record<TalkFrequency, string> = {
+  daily: "Most days",
+  few_times_a_week: "A few times a week",
+  weekly: "Once a week or so",
+  on_hard_days: "When a hard day hits",
+  not_sure: "Not sure yet",
+};
 
 export function IntakeCard({
   intake,
@@ -89,6 +97,8 @@ export function IntakeCard({
         <Row label="Their age" value={intake.deceased_age_range} />
         <Row label="Time since loss" value={intake.time_since_loss} />
         <Row label="Timezone" value={intake.timezone} />
+        <Row label="Wants to talk" value={intake.talk_frequency ? TALK_FREQUENCY_LABELS[intake.talk_frequency] : null} />
+        <Row label="Would rather not discuss" value={intake.avoid_topics} />
         {intake.financial_strain !== null && (
           <Row label="Financial strain" value={intake.financial_strain ? "Yes" : "No"} />
         )}

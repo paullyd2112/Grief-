@@ -344,6 +344,10 @@ export default function HomeScreen() {
         <Text style={styles.footerLink}>Crisis help</Text>
       </TouchableOpacity>
       <Text style={styles.footerDivider}>·</Text>
+      <TouchableOpacity onPress={() => router.push("/(app)/feedback")}>
+        <Text style={styles.footerLink}>Feedback</Text>
+      </TouchableOpacity>
+      <Text style={styles.footerDivider}>·</Text>
       <TouchableOpacity onPress={signOut}>
         <Text style={styles.footerLink}>Sign out</Text>
       </TouchableOpacity>
