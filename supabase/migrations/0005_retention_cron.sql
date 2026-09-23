@@ -1,7 +1,7 @@
 -- Ndo — retention cron
 --
 -- If pg_cron is available, schedule purge_expired_reports() to run daily.
--- Otherwise the admin console hits /api/cron/purge-reports on a Vercel cron
+-- Otherwise the admin console hits /api/cron/retention on a Vercel cron
 -- schedule.
 
 do $$
