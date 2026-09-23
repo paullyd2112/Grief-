@@ -75,6 +75,9 @@ export default function CrisisScreen() {
         Ndo is a peer support platform, not a crisis service. If you need
         immediate help, please use the resources above.
       </Text>
+      <Text style={styles.footer}>
+        {"These are independent organizations. Listing them isn't a vetting or endorsement by Ndo. Use your own judgment when reaching out to any of them."}
+      </Text>
     </ScrollView>
   );
 }

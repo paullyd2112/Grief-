@@ -11,7 +11,7 @@ in DECISIONS.md; the access commitment lives in ACCESS_POLICY.md.
 | 2a | Intake form (mobile) — **goes live before messaging** | |
 | 2b | Admin matching console (Next.js on Vercel) | |
 | 3 | 1:1 messaging, report / block / end-match, delete-for-both | |
-| 4 | Voice memos (IG hold-to-record model), transcription | |
+| 4 | Voice memos (IG hold-to-record model), no transcription | |
 | 5 | Crisis page, guidelines, access log UI, retention cron | |
 | 6 | Stripe / RevenueCat, 60-day trial, cancel/pause, hardship path | |
 

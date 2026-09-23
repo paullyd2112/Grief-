@@ -32,7 +32,8 @@ export type MatchEndKind =
   | "reported_and_left"
   | "deleted"
   | "removed"
-  | "account_deleted";
+  | "account_deleted"
+  | "blocked";
 
 export interface Profile {
   id: string;

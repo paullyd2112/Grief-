@@ -73,8 +73,9 @@ someone new. Report-and-leave is still silent — no notice of any kind.
 ### D7. Voice interaction model
 **Decided.** Instagram DM model — hold to record, live waveform, release to
 send, inline playback in the conversation only. No download affordance. Length
-capped. Server-side transcription for accessibility and for moderation triage of
-*reported* memos only.
+capped. **No transcription**, not even of reported memos: speech-to-text is an
+AI model, and the Code of Conduct promises no AI in intake, matching, or
+moderation. A reported memo is reviewed by listening to it.
 
 ### D8. Trial length
 **Decided.** 60 days free, then convert. End date shown at signup and again
@@ -87,17 +88,48 @@ Hardship option requires no explanation.
 is ever worth automating.
 
 ### D10. Beta is US-only
-**Decided.** Geo-restricted to avoid GDPR at the start.
+**Decided.** Geo-restricted to avoid GDPR at the start. This also answers the
+Code of Conduct's open item on which crisis lines to surface: US lines (988,
+Crisis Text Line) for now, with the IASP directory as a fallback.
+
+### D12. Re-matching (was O1)
+**Decided.** Two people whose match ended can be matched again, unless either
+one blocked the other. A block is permanent. Ending a match is never treated as
+a violation. The admin queue says when a pair was matched before.
+
+### D13. Blocking stands on its own
+**Decided.** Block is available in every conversation, live or ended, without
+filing a report. It ends a live match with the same neutral "left the
+conversation" notice as leaving — it never says "blocked". A report still
+blocks too. Blocks are written only by `block_user()` and `report_message()`;
+members cannot insert or delete them directly, so a block can't be lifted.
+
+### D14. Reporting after leaving
+**Decided.** Ended conversations stay in the list (below active ones) so
+either person can still report or block. This also covers reporting
+off-platform conduct by someone you were matched with.
+
+### D15. Contact info is the member's choice
+**Decided.** Members choose whether to share last name, location, photos, or
+handles. The detector stays, but as a "just checking you mean to share this"
+prompt, not a rule. The guidelines no longer ban contact info.
+
+### D16. Enforcement tiers and appeals
+**Decided.** Warning → suspension → permanent ban, by severity and pattern.
+A warning is written by an operator from a report and shown to the member as
+a pop-up they acknowledge; it never names the reporter or the conversation.
+Appeals go to the support email and are reviewed by Paul. There is no second
+reviewer during the beta, so the Code of Conduct should not promise one.
+Timed suspensions and a distinct permanent-ban state are not built yet.
+
+### D17. Crisis resources: one tap away, no detection
+**Decided.** A "Get help" link sits in every conversation header and on the
+home screen. Messages are not scanned for crisis language. The crisis screen
+says listing a resource is not an endorsement.
 
 ---
 
 ## Open
-
-### O1. Re-matching
-Can two people who ended a conversation be matched with each other again later?
-Affects whether `blocks` is permanent and whether the matcher sees prior pairings.
-*Blocking:* no. Default until decided: prior pairs are excluded from suggestions,
-and a block is permanent.
 
 ### O2. Geography / timezone in matching
 Matters less for async voice than live calls. Currently collected but unused.

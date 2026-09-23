@@ -30,7 +30,13 @@ export type AccountStatus = "active" | "paused" | "suspended" | "deleted";
 
 export type MessageKind = "text" | "voice";
 
-export type MatchEndKind = "left" | "reported_and_left" | "deleted";
+export type MatchEndKind =
+  | "left"
+  | "reported_and_left"
+  | "deleted"
+  | "removed"
+  | "account_deleted"
+  | "blocked";
 
 export interface Profile {
   id: string;
@@ -93,6 +99,14 @@ export interface MatchEndNotice {
   recipient_id: string;
   match_id: string;
   leaver_name: string;
+  created_at: string;
+  seen_at: string | null;
+}
+
+export interface Warning {
+  id: string;
+  user_id: string;
+  guidance: string;
   created_at: string;
   seen_at: string | null;
 }

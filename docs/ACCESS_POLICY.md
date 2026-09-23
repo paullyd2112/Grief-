@@ -29,7 +29,7 @@ which conversation content reaches an operator is a report.
 ## What an operator CANNOT read
 
 - Message bodies in any unreported conversation.
-- Voice memo audio or transcripts in any unreported conversation.
+- Voice memo audio in any unreported conversation. (Memos are never transcribed; see DECISIONS.md D7.)
 - Any content in a conversation after either party deletes it, unless it was
   reported before deletion.
 

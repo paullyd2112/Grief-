@@ -10,17 +10,18 @@ import type { IntakeWithProfile } from "@/lib/types";
 const EXCLUSION_MESSAGE = {
   blocked:
     "One of these people has blocked the other. They can't be matched.",
-  previously_matched:
-    "These two have been matched before. They can't be matched again.",
+  currently_matched: "These two are already matched with each other.",
 } as const;
 
 export function MatchingQueue({
   intakes,
   excludedPairs,
+  previousPairs,
   activeMatchCounts,
 }: {
   intakes: IntakeWithProfile[];
   excludedPairs: Record<string, keyof typeof EXCLUSION_MESSAGE>;
+  previousPairs: string[];
   activeMatchCounts: Record<string, number>;
 }) {
   const router = useRouter();
@@ -41,6 +42,9 @@ export function MatchingQueue({
     selected.length === 2
       ? excludedPairs[pairKey(selected[0], selected[1])]
       : undefined;
+  const matchedBefore =
+    selected.length === 2 &&
+    previousPairs.includes(pairKey(selected[0], selected[1]));
 
   const handleMatch = async () => {
     if (selected.length !== 2 || exclusion) return;
@@ -147,6 +151,13 @@ export function MatchingQueue({
           {exclusion && (
             <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               {EXCLUSION_MESSAGE[exclusion]}
+            </p>
+          )}
+
+          {matchedBefore && !exclusion && (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              These two were matched before and that match ended. Neither
+              blocked the other, so they can be matched again.
             </p>
           )}
 
