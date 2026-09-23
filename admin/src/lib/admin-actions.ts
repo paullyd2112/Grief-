@@ -139,8 +139,8 @@ export async function unsuspendUser(params: { userId: string; justification: str
 }
 
 /**
- * Close a concern. The note is written to the access log, which the person
- * the concern is about can read, so it must never say who raised it.
+ * Close a concern. The note goes to the access log for operators; it's hidden
+ * from the person the concern is about.
  */
 export async function handleConcern(params: { concernId: string; note: string }) {
   const supabase = await createClient();

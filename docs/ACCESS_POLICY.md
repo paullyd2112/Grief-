@@ -24,7 +24,7 @@ which conversation content reaches an operator is a report.
 | Message *counts* and timestamps | Yes | Liveness — is this match working. Never content. |
 | Reported content + surrounding context | Yes | Only what the reporter's device submitted. |
 | Report/block counts per account | Yes | Behavioural safety signal that needs no content. |
-| A concern ("I'm worried about them") | Yes | Who is worried, about whom, and the note the worried person chose to write. Never the conversation. The person it's about is not told who raised it; when an operator marks it handled, that note appears in their access log. Operators may send them a check-in from Ndo (crisis lines on their home screen) that never mentions the concern. |
+| A concern ("I'm worried about them") | Yes | Who is worried, about whom, and the note the worried person chose to write. Never the conversation. The person it's about is never told a concern was raised or by whom. Operators may send them a check-in from Ndo (crisis lines on their home screen) that never mentions the concern. |
 
 ## What an operator CANNOT read
 
@@ -53,6 +53,13 @@ the admin console and its access log.
 Every operator read of intake data or of a report snapshot writes a row to
 `access_log`, with the acting account, the subject, and a required free-text
 justification. The log is append-only. Users can request their own access log.
+
+One exception, for safety: when someone raises a concern about the person
+they're talking to, what operators do about it (handling the concern, sending
+a check-in) is logged but not shown to the person it's about. Someone with one
+or two matches could otherwise tell who reached out, and people need to feel
+safe asking for help for someone else. The check-in is how the person it's
+about gets support.
 
 ## Retention
 

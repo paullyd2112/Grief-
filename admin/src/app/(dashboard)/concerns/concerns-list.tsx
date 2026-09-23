@@ -120,9 +120,8 @@ function ConcernCard({
                 placeholder="What you did (required)"
                 className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 resize-none"
               />
-              <p className="text-xs text-amber-700">
-                {aboutName} can read this note in their access log. Don&apos;t
-                mention who raised the concern.
+              <p className="text-xs text-stone-500">
+                For the team&apos;s records. {aboutName} won&apos;t see it.
               </p>
               <button
                 onClick={() => {

@@ -571,6 +571,21 @@ select pg_temp.check('sending a check-in is written to the access log',
            where action = 'check_in_sent'
              and subject_user_id = 'b0000000-0000-0000-0000-00000000000b'));
 
+-- 25. Concern handling stays out of the subject's own view of the log.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-00000000000b';
+select pg_temp.check('the person a concern is about cannot see it was handled',
+  not exists (select 1 from public.access_log
+               where action in ('concern_handled', 'check_in_sent')));
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000009';
+select pg_temp.check('everyone still sees the rest of their own log',
+  exists (select 1 from public.access_log where action = 'user_suspended'));
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check('operators still see concern handling in the log',
+  (select count(*) from public.access_log
+    where action in ('concern_handled', 'check_in_sent')) = 2);
+set role postgres;
+
 set role postgres;
 \echo ''
 \echo 'All access policy assertions passed.'
