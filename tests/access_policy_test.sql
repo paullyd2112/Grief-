@@ -562,6 +562,26 @@ select pg_temp.check('sending a check-in is written to the access log',
            where action = 'check_in_sent'
              and subject_user_id = 'b0000000-0000-0000-0000-00000000000b'));
 
+-- 26. Function privileges: nothing callable signed out; retention is job-only.
+set role anon;
+do $$
+begin
+  perform public.raise_concern('cccccccc-0000-0000-0000-000000000007', 'x', true);
+  raise exception 'FAIL: raise_concern callable signed out';
+exception when insufficient_privilege then
+  raise notice 'PASS  signed-out callers cannot use Ndo functions';
+end $$;
+set role authenticated;
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000009';
+do $$
+begin
+  perform public.purge_expired_reports();
+  raise exception 'FAIL: a user can run the retention purge';
+exception when insufficient_privilege then
+  raise notice 'PASS  only the retention job can purge';
+end $$;
+set role postgres;
+
 -- 25. Concern handling stays out of the subject's own view of the log.
 set role authenticated;
 set request.jwt.claim.sub = 'b0000000-0000-0000-0000-00000000000b';
