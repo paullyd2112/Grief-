@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { avatarTint, fonts, useTheme } from "../../theme";
+import { avatarTint, fonts, hairlineWidth, useTheme } from "../../theme";
 import { Text } from "./Text";
 
 export interface AvatarProps {
@@ -9,35 +9,40 @@ export interface AvatarProps {
   size?: number;
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "·";
-  const first = parts[0][0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? "" : "";
-  return (first + last).toUpperCase();
+// One initial, set in the serif. Two-letter monograms read as placeholders.
+function initial(name: string): string {
+  const first = name.trim().charAt(0);
+  return first ? first.toUpperCase() : "·";
 }
 
 export function Avatar({ seed, name, size = 48 }: AvatarProps) {
-  const { scheme } = useTheme();
+  const { scheme, color } = useTheme();
   const tint = avatarTint(seed, scheme);
   return (
     <View
       accessible={false}
       style={[
         styles.circle,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: tint.fill },
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: tint.fill,
+          borderWidth: hairlineWidth,
+          borderColor: color.hairline,
+        },
       ]}
     >
       <Text
         allowFontScaling={false}
         style={{
           fontFamily: fonts.serif,
-          fontSize: size * 0.4,
-          lineHeight: size * 0.5,
+          fontSize: size * 0.44,
+          lineHeight: size * 0.56,
           color: tint.ink,
         }}
       >
-        {initials(name)}
+        {initial(name)}
       </Text>
     </View>
   );

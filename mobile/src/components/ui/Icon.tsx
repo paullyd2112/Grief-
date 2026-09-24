@@ -1,4 +1,5 @@
 import { SymbolView } from "expo-symbols";
+import light from "expo-symbols/androidWeights/light";
 import type { ColorValue, StyleProp, ViewStyle } from "react-native";
 
 // The one icon set: SF Symbols on iOS, the matching Material Symbol on Android
@@ -57,6 +58,7 @@ export function Icon({ name, size = 22, color, style }: IconProps) {
       name={icons[name]}
       size={size}
       tintColor={color}
+      weight={{ ios: "regular", android: light }}
       style={style}
       accessible={false}
       importantForAccessibility="no"

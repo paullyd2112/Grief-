@@ -57,8 +57,19 @@ function GetTheApp() {
   }
   return (
     <div className="cta">
-      <span className="soon">Coming soon to iPhone</span>
+      <ComingSoon />
     </div>
+  );
+}
+
+// Shaped like an App Store badge but plainly not a link: there is no listing
+// yet. Apple's own badge replaces it once NEXT_PUBLIC_APP_STORE_URL is set.
+function ComingSoon({ compact = false }: { compact?: boolean }) {
+  return (
+    <span className={compact ? "soon soon-compact" : "soon"}>
+      <span className="soon-small">Coming soon to</span>
+      <span className="soon-large">iPhone</span>
+    </span>
   );
 }
 
@@ -69,14 +80,23 @@ export default function Home() {
         Skip to content
       </a>
 
-      <header className="wrap header">
-        <Link className="wordmark" href="/" aria-label="Ndo home">
-          Ndo
-        </Link>
-        <nav className="header-links" aria-label="Page">
-          <a href="#how">How it works</a>
-          <a href="#crisis">Crisis help</a>
-        </nav>
+      <header className="header">
+        <div className="wrap header-inner">
+          <Link className="wordmark" href="/" aria-label="Ndo home">
+            Ndo
+          </Link>
+          <nav className="header-links" aria-label="Page">
+            <a href="#how">How it works</a>
+            <a href="#crisis">Crisis help</a>
+            {APP_STORE_URL ? (
+              <a className="button button-compact" href={APP_STORE_URL}>
+                Get the app
+              </a>
+            ) : (
+              <ComingSoon compact />
+            )}
+          </nav>
+        </div>
       </header>
 
       <main id="main">
@@ -94,23 +114,25 @@ export default function Home() {
             </p>
             <GetTheApp />
           </div>
-          <IPhone>
-            {/* Light and dark captures of the app; CSS shows the one that
-                matches the reader's color scheme. */}
-            <Image
-              className="only-light"
-              src={appHome}
-              alt="The Ndo app: a quiet list of conversations with the people you've been matched with."
-              priority
-              sizes="(min-width: 60rem) 20rem, 80vw"
-            />
-            <Image
-              className="only-dark"
-              src={appHomeDark}
-              alt="The Ndo app: a quiet list of conversations with the people you've been matched with."
-              sizes="(min-width: 60rem) 20rem, 80vw"
-            />
-          </IPhone>
+          <div className="hero-visual">
+            <IPhone>
+              {/* Light and dark captures of the app; CSS shows the one that
+                  matches the reader's color scheme. */}
+              <Image
+                className="only-light"
+                src={appHome}
+                alt="The Ndo app: a quiet list of conversations with the people you've been matched with."
+                priority
+                sizes="(min-width: 60rem) 20rem, 80vw"
+              />
+              <Image
+                className="only-dark"
+                src={appHomeDark}
+                alt="The Ndo app: a quiet list of conversations with the people you've been matched with."
+                sizes="(min-width: 60rem) 20rem, 80vw"
+              />
+            </IPhone>
+          </div>
         </section>
 
         <section className="statement" aria-label="Why Ndo">
@@ -199,10 +221,16 @@ export default function Home() {
       </main>
 
       <footer className="wrap footer">
-        <span>© {new Date().getFullYear()} Ndo</span>
-        {SUPPORT_EMAIL && (
-          <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
-        )}
+        <div className="footer-brand">
+          <span className="wordmark">Ndo</span>
+          <p>Peer support for grief. Matched by hand.</p>
+        </div>
+        <nav className="footer-links" aria-label="Footer">
+          <a href="#how">How it works</a>
+          <a href="#crisis">Crisis help</a>
+          {SUPPORT_EMAIL && <a href={`mailto:${SUPPORT_EMAIL}`}>Contact</a>}
+        </nav>
+        <p className="footer-legal">© {new Date().getFullYear()} Ndo</p>
       </footer>
     </>
   );

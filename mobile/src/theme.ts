@@ -3,7 +3,7 @@
 // See docs/DESIGN_BRIEF.md.
 
 import { createContext, useContext } from "react";
-import { useColorScheme } from "react-native";
+import { Platform, StyleSheet, useColorScheme } from "react-native";
 
 // ---------------------------------------------------------------------------
 // Color
@@ -187,7 +187,9 @@ export const radius = {
   pill: 999,
 } as const;
 
-export const hairlineWidth = 1;
+// True device hairline (1 physical pixel), as iOS draws separators. React
+// Native Web reports 1px, so use half a pixel there for retina previews.
+export const hairlineWidth = Platform.OS === "web" ? 0.5 : StyleSheet.hairlineWidth;
 
 // Minimum tap target, per Apple's HIG.
 export const minTapTarget = 44;

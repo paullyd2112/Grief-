@@ -51,7 +51,11 @@ export function ConversationRow({
       </View>
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
-          <Text variant="title3" numberOfLines={1} style={styles.rowName}>
+          <Text
+            variant="title3"
+            numberOfLines={1}
+            style={[styles.rowName, unread && styles.rowNameUnread]}
+          >
             {partnerName}
           </Text>
           {unread && (
@@ -335,6 +339,9 @@ const styles = StyleSheet.create({
   },
   rowName: {
     flex: 1,
+  },
+  rowNameUnread: {
+    fontFamily: fonts.serifSemibold,
   },
   unreadDot: {
     width: 8,
