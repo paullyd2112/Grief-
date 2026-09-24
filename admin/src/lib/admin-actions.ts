@@ -129,6 +129,19 @@ export async function suspendUser(params: { userId: string; justification: strin
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Warn the reported member. They see the guidance as a pop-up in the app; it
+ * never says who reported them or which conversation it was about.
+ */
+export async function warnUser(params: { reportId: string; guidance: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("warn_user", {
+    report: params.reportId,
+    guidance: params.guidance,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function unsuspendUser(params: { userId: string; justification: string }) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("unsuspend_user", {
@@ -158,5 +171,14 @@ export async function handleConcern(params: { concernId: string; note: string })
 export async function sendCheckIn(params: { concernId: string }) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("send_check_in", { concern: params.concernId });
+  if (error) throw new Error(error.message);
+}
+
+export async function markFeedbackRead(params: { feedbackId: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("feedback")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", params.feedbackId);
   if (error) throw new Error(error.message);
 }

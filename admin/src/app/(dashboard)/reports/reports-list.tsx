@@ -7,6 +7,7 @@ import {
   logAccess,
   suspendUser,
   unsuspendUser,
+  warnUser,
 } from "@/lib/admin-actions";
 import type { AccountStatus } from "@/lib/types";
 
@@ -111,15 +112,19 @@ function ReportCard({
   onResolve,
   onSuspend,
   onUnsuspend,
+  onWarn,
 }: {
   report: ReportRow;
   onResolve: (id: string, resolution: string) => void;
+  onWarn: (reportId: string, guidance: string) => void;
   onSuspend: (userId: string, justification: string) => void;
   onUnsuspend: (userId: string, justification: string) => void;
 }) {
   const [showSnapshot, setShowSnapshot] = useState(false);
-  const [openForm, setOpenForm] = useState<"resolve" | "suspend" | "unsuspend" | null>(null);
-  const toggleForm = (form: "resolve" | "suspend" | "unsuspend") =>
+  const [openForm, setOpenForm] = useState<
+    "resolve" | "warn" | "suspend" | "unsuspend" | null
+  >(null);
+  const toggleForm = (form: "resolve" | "warn" | "suspend" | "unsuspend") =>
     setOpenForm((current) => (current === form ? null : form));
 
   const isOpen = !report.resolved_at;
@@ -206,6 +211,14 @@ function ReportCard({
         )}
         {reportedId && !isSuspended && (
           <button
+            onClick={() => toggleForm("warn")}
+            className="text-amber-700 hover:text-amber-900 underline underline-offset-2"
+          >
+            Warn {reportedName}
+          </button>
+        )}
+        {reportedId && !isSuspended && (
+          <button
             onClick={() => toggleForm("suspend")}
             className="text-red-600 hover:text-red-800 underline underline-offset-2"
           >
@@ -233,6 +246,17 @@ function ReportCard({
           placeholder="Resolution notes (required)"
           buttonLabel="Mark resolved"
           onSubmit={(text) => onResolve(report.id, text)}
+        />
+      )}
+
+      {openForm === "warn" && reportedId && (
+        <JustifiedAction
+          placeholder={`Guidance ${reportedName} will see in a pop-up (required, goes in the access log). It never says who reported them or which conversation. e.g. "Please don't tell people how they should be grieving. Ask what they need instead."`}
+          buttonLabel={`Send warning to ${reportedName}`}
+          onSubmit={(text) => {
+            setOpenForm(null);
+            onWarn(report.id, text);
+          }}
         />
       )}
 
@@ -321,6 +345,9 @@ export function ReportsList({ reports }: { reports: ReportRow[] }) {
   const handleUnsuspend = (userId: string, justification: string) =>
     runAction(() => unsuspendUser({ userId, justification }));
 
+  const handleWarn = (reportId: string, guidance: string) =>
+    runAction(() => warnUser({ reportId, guidance }));
+
   return (
     <div>
       <div className="flex gap-1 mb-4">
@@ -364,6 +391,7 @@ export function ReportsList({ reports }: { reports: ReportRow[] }) {
               onResolve={handleResolve}
               onSuspend={handleSuspend}
               onUnsuspend={handleUnsuspend}
+              onWarn={handleWarn}
             />
           ))}
         </div>

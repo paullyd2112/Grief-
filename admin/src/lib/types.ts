@@ -26,13 +26,21 @@ export type MatchPreference =
   | "prefer_similar"
   | "open_to_anyone";
 
+export type TalkFrequency =
+  | "daily"
+  | "few_times_a_week"
+  | "weekly"
+  | "on_hard_days"
+  | "not_sure";
+
 export type AccountStatus = "active" | "paused" | "suspended" | "deleted";
 export type MatchEndKind =
   | "left"
   | "reported_and_left"
   | "deleted"
   | "removed"
-  | "account_deleted";
+  | "account_deleted"
+  | "blocked";
 
 export interface Profile {
   id: string;
@@ -56,6 +64,8 @@ export interface IntakeResponse {
   support_wanted: string[];
   match_preference: MatchPreference;
   financial_strain: boolean | null;
+  talk_frequency: TalkFrequency | null;
+  avoid_topics: string | null;
   free_text: string | null;
   timezone: string | null;
   submitted_at: string;

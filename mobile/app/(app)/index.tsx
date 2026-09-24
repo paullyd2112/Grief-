@@ -8,12 +8,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   Linking,
+  Modal,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/hooks/useAuth";
 import { useProfile } from "../../src/hooks/useProfile";
-import type { MatchEndNotice } from "../../src/lib/types";
+import { SUPPORT_EMAIL } from "../../src/lib/config";
+import type { MatchEndNotice, Warning } from "../../src/lib/types";
 
 interface ConversationItem {
   id: string;
@@ -21,6 +23,7 @@ interface ConversationItem {
   lastMessage: string | null;
   sortAt: string;
   unread: boolean;
+  ended: boolean;
 }
 
 export default function HomeScreen() {
@@ -30,6 +33,7 @@ export default function HomeScreen() {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [notices, setNotices] = useState<MatchEndNotice[]>([]);
   const [checkInIds, setCheckInIds] = useState<string[]>([]);
+  const [warnings, setWarnings] = useState<Warning[]>([]);
   const [hasIntake, setHasIntake] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,8 +62,7 @@ export default function HomeScreen() {
         )
       `)
       .eq("user_id", user.id)
-      .is("conversations.deleted_at", null)
-      .is("conversations.matches.ended_at", null);
+      .is("conversations.deleted_at", null);
 
     const items: ConversationItem[] = [];
     for (const row of (convs ?? []) as any[]) {
@@ -79,7 +82,9 @@ export default function HomeScreen() {
         .limit(1)
         .maybeSingle();
 
+      const ended = !!match.ended_at;
       const unread =
+        !ended &&
         !!lastMsg &&
         lastMsg.sender_id !== user.id &&
         (!row.last_read_at ||
@@ -95,10 +100,15 @@ export default function HomeScreen() {
           : null,
         sortAt: lastMsg?.created_at ?? conv.created_at,
         unread,
+        ended,
       });
     }
+    // Active conversations first. Ended ones stay listed so they can still be
+    // reported or deleted.
     items.sort(
-      (a, b) => new Date(b.sortAt).getTime() - new Date(a.sortAt).getTime()
+      (a, b) =>
+        Number(a.ended) - Number(b.ended) ||
+        new Date(b.sortAt).getTime() - new Date(a.sortAt).getTime()
     );
     setConversations(items);
 
@@ -116,6 +126,14 @@ export default function HomeScreen() {
       .is("seen_at", null);
 
     setCheckInIds((checkIns ?? []).map((c) => c.id));
+
+    const { data: unseenWarnings } = await supabase
+      .from("warnings")
+      .select("*")
+      .is("seen_at", null)
+      .order("created_at", { ascending: true });
+
+    setWarnings(unseenWarnings ?? []);
     setLoading(false);
   }, [user]);
 
@@ -151,6 +169,14 @@ export default function HomeScreen() {
       .in("id", ids);
   };
 
+  const acknowledgeWarning = async (id: string) => {
+    setWarnings((prev) => prev.filter((w) => w.id !== id));
+    await supabase
+      .from("warnings")
+      .update({ seen_at: new Date().toISOString() })
+      .eq("id", id);
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -160,6 +186,8 @@ export default function HomeScreen() {
   }
 
   const isNewUser = !guidelinesAccepted || !hasIntake;
+  const activeCount = conversations.filter((c) => !c.ended).length;
+  const warning = warnings[0];
 
   const header = (
     <>
@@ -292,7 +320,7 @@ export default function HomeScreen() {
       )}
 
       {/* Waiting state, only after both steps are done */}
-      {!isNewUser && conversations.length === 0 && notices.length === 0 && (
+      {!isNewUser && activeCount === 0 && notices.length === 0 && (
         <View style={styles.waitingCard}>
           <Text style={styles.waitingTitle}>
             {"We'll have matches for you shortly"}
@@ -316,6 +344,10 @@ export default function HomeScreen() {
         <Text style={styles.footerLink}>Crisis help</Text>
       </TouchableOpacity>
       <Text style={styles.footerDivider}>·</Text>
+      <TouchableOpacity onPress={() => router.push("/(app)/feedback")}>
+        <Text style={styles.footerLink}>Feedback</Text>
+      </TouchableOpacity>
+      <Text style={styles.footerDivider}>·</Text>
       <TouchableOpacity onPress={signOut}>
         <Text style={styles.footerLink}>Sign out</Text>
       </TouchableOpacity>
@@ -323,6 +355,7 @@ export default function HomeScreen() {
   );
 
   return (
+    <>
     <FlatList
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -347,17 +380,99 @@ export default function HomeScreen() {
               style={[styles.convPreview, item.unread && styles.convPreviewUnread]}
               numberOfLines={1}
             >
-              {item.lastMessage ?? "New match. Say hello when you're ready."}
+              {item.ended
+                ? "Conversation ended"
+                : item.lastMessage ?? "New match. Say hello when you're ready."}
             </Text>
           </View>
           <Text style={styles.convArrow}>›</Text>
         </TouchableOpacity>
       )}
     />
+
+    {/* Warning from Ndo. Never says who reported or which conversation. */}
+    <Modal visible={!!warning} animationType="fade" transparent>
+      <View style={styles.warningOverlay}>
+        <View style={styles.warningCard}>
+          <Text style={styles.warningTitle}>A note from the Ndo team</Text>
+          <Text style={styles.warningBody}>
+            {"After a review, we're reaching out about something that goes against the Code of Conduct."}
+          </Text>
+          <Text style={styles.warningGuidance}>{warning?.guidance}</Text>
+          <Text style={styles.warningBody}>
+            {"This is a warning, not a suspension. If it happens again, we may suspend your account."}
+          </Text>
+          {SUPPORT_EMAIL && (
+            <TouchableOpacity onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
+              <Text style={styles.warningLink}>
+                {`If you think this was a mistake, email ${SUPPORT_EMAIL}.`}
+              </Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.warningButton}
+            onPress={() => warning && acknowledgeWarning(warning.id)}
+          >
+            <Text style={styles.warningButtonText}>I understand</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  warningOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  warningCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+  },
+  warningTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1C1917",
+    marginBottom: 12,
+  },
+  warningBody: {
+    fontSize: 15,
+    color: "#57534E",
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  warningGuidance: {
+    fontSize: 15,
+    color: "#1C1917",
+    lineHeight: 22,
+    backgroundColor: "#F5F5F4",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  warningLink: {
+    fontSize: 14,
+    color: "#3B82F6",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  warningButton: {
+    backgroundColor: "#1C1917",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  warningButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   container: {
     flex: 1,
     backgroundColor: "#FAFAF9",

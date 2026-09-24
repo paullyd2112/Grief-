@@ -17,6 +17,7 @@ import type {
   MannerOfDeath,
   Suddenness,
   MatchPreference,
+  TalkFrequency,
 } from "../../src/lib/types";
 import * as Localization from "expo-localization";
 
@@ -93,6 +94,14 @@ const TIME_OPTIONS = [
   "5+ years",
 ];
 
+const TALK_FREQUENCY: { value: TalkFrequency; label: string }[] = [
+  { value: "daily", label: "Most days" },
+  { value: "few_times_a_week", label: "A few times a week" },
+  { value: "weekly", label: "Once a week or so" },
+  { value: "on_hard_days", label: "When a hard day hits" },
+  { value: "not_sure", label: "Not sure yet" },
+];
+
 const MATCH_PREFS: { value: MatchPreference; label: string; desc: string }[] = [
   {
     value: "similar_only",
@@ -125,6 +134,8 @@ export default function IntakeScreen() {
   const [timeSince, setTimeSince] = useState<string | null>(null);
   const [matchPref, setMatchPref] = useState<MatchPreference | null>(null);
   const [financialStrain, setFinancialStrain] = useState<boolean | null>(null);
+  const [talkFrequency, setTalkFrequency] = useState<TalkFrequency | null>(null);
+  const [avoidTopics, setAvoidTopics] = useState("");
   const [freeText, setFreeText] = useState("");
   const [isEdit, setIsEdit] = useState(false);
   const [prefilling, setPrefilling] = useState(true);
@@ -147,6 +158,8 @@ export default function IntakeScreen() {
           setTimeSince(data.time_since_loss);
           setMatchPref(data.match_preference);
           setFinancialStrain(data.financial_strain);
+          setTalkFrequency(data.talk_frequency);
+          setAvoidTopics(data.avoid_topics ?? "");
           setFreeText(data.free_text ?? "");
         }
         setPrefilling(false);
@@ -183,6 +196,8 @@ export default function IntakeScreen() {
         time_since_loss: timeSince,
         match_preference: matchPref,
         financial_strain: financialStrain,
+        talk_frequency: talkFrequency,
+        avoid_topics: avoidTopics.trim() || null,
         free_text: freeText.trim() || null,
         timezone: tz,
         updated_at: new Date().toISOString(),
@@ -317,6 +332,35 @@ export default function IntakeScreen() {
             <Text style={styles.matchCardDesc}>{opt.desc}</Text>
           </TouchableOpacity>
         ))}
+      </View>
+
+      {/* Pace — optional */}
+      <PillSelect
+        label="How often would you like to talk?"
+        options={TALK_FREQUENCY}
+        value={talkFrequency}
+        onSelect={(v) => setTalkFrequency(talkFrequency === v ? null : v)}
+      />
+
+      {/* Topics to avoid — optional */}
+      <View style={styles.field}>
+        <Text style={styles.label}>
+          {"Anything you'd rather not talk about?"}
+        </Text>
+        <Text style={styles.hint}>
+          {"Optional. We'll keep it in mind when choosing your match. Your match doesn't see your answers here, so let them know too if you'd like."}
+        </Text>
+        <TextInput
+          style={[styles.textInput, styles.textArea]}
+          value={avoidTopics}
+          onChangeText={setAvoidTopics}
+          placeholder="e.g. religion, how they died, the funeral"
+          placeholderTextColor="#A8A29E"
+          multiline
+          numberOfLines={3}
+          maxLength={1000}
+          textAlignVertical="top"
+        />
       </View>
 
       {/* Financial strain — optional, never inferred */}

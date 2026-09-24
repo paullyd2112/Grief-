@@ -30,6 +30,11 @@ export default async function DashboardLayout({
     .is("handled_at", null)
     .eq("urgent", true);
 
+  const { count: unreadFeedback } = await supabase
+    .from("feedback")
+    .select("id", { count: "exact", head: true })
+    .is("read_at", null);
+
   return (
     <div className="min-h-screen bg-stone-50">
       <nav className="border-b border-stone-200 bg-white">
@@ -69,6 +74,17 @@ export default async function DashboardLayout({
                   {!!openReports && (
                     <span className="bg-red-600 text-white text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none">
                       {openReports}
+                    </span>
+                  )}
+                </Link>
+                <Link
+                  href="/feedback"
+                  className="text-stone-600 hover:text-stone-900 transition flex items-center gap-1.5"
+                >
+                  Feedback
+                  {!!unreadFeedback && (
+                    <span className="bg-blue-600 text-white text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none">
+                      {unreadFeedback}
                     </span>
                   )}
                 </Link>

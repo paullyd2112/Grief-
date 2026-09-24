@@ -74,11 +74,13 @@ function MessageBubble({
 
 function ReportModal({
   visible,
+  ended,
   onClose,
   onSubmit,
   loading,
 }: {
   visible: boolean;
+  ended: boolean;
   onClose: () => void;
   onSubmit: (reason: string) => void;
   loading: boolean;
@@ -91,8 +93,9 @@ function ReportModal({
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Report this person</Text>
           <Text style={styles.modalSubtitle}>
-            This will block them and end the conversation. Your recent messages
-            will be saved as a snapshot for review.
+            {ended
+              ? "This will block them. Your recent messages will be saved as a snapshot for review. You can also report something that happened outside the app."
+              : "This will block them and end the conversation. Your recent messages will be saved as a snapshot for review."}
           </Text>
 
           <TextInput
@@ -111,7 +114,7 @@ function ReportModal({
             disabled={loading}
           >
             <Text style={styles.reportButtonText}>
-              {loading ? "Reporting..." : "Report & leave"}
+              {loading ? "Reporting..." : ended ? "Report" : "Report & leave"}
             </Text>
           </TouchableOpacity>
 
@@ -220,7 +223,7 @@ export default function ConversationScreen() {
       };
 
       try {
-        await supabase.rpc("report_message", {
+        const { error } = await supabase.rpc("report_message", {
           conv: id,
           target_user: info.partnerId,
           target_msg: recentMessages.length > 0
@@ -230,8 +233,13 @@ export default function ConversationScreen() {
           content: snapshot,
           also_leave: true,
         });
+        if (error) throw error;
         setShowReport(false);
-        router.replace("/(app)/");
+        Alert.alert(
+          "Report received",
+          `A person at Ndo will review it. ${info.partnerName} won't be told who reported them.`,
+          [{ text: "OK", onPress: () => router.replace("/(app)/") }]
+        );
       } catch {
         Alert.alert("Something went wrong", "Please try again.");
       } finally {
@@ -240,6 +248,31 @@ export default function ConversationScreen() {
     },
     [id, info, user, messages, router]
   );
+
+  const handleBlock = useCallback(() => {
+    if (!id || !info) return;
+    Alert.alert(
+      `Block ${info.partnerName}?`,
+      isEnded
+        ? "You'll never be matched with them again. This can't be undone."
+        : "This ends the conversation and you'll never be matched with them again. They'll see that you left, not that you blocked them. This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await supabase.rpc("block_user", { conv: id });
+            if (error) {
+              Alert.alert("Something went wrong", "Please try again.");
+              return;
+            }
+            router.replace("/(app)/");
+          },
+        },
+      ]
+    );
+  }, [id, info, isEnded, router]);
 
   const handleDelete = useCallback(() => {
     if (!id) return;
@@ -289,37 +322,47 @@ export default function ConversationScreen() {
         options={{
           title: info.partnerName,
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => {
-                Alert.alert(info.partnerName, undefined, [
-                  {
-                    text: "I'm worried about them",
-                    onPress: () => setShowWorried(true),
-                  },
-                  ...(isEnded
-                    ? []
-                    : [
-                        {
-                          text: "Leave conversation",
-                          onPress: handleLeave,
-                        } as const,
-                        {
-                          text: "Report",
-                          style: "destructive" as const,
-                          onPress: () => setShowReport(true),
-                        },
-                      ]),
-                  {
-                    text: "Delete conversation",
-                    style: "destructive" as const,
-                    onPress: handleDelete,
-                  },
-                  { text: "Cancel", style: "cancel" as const },
-                ]);
-              }}
-            >
-              <Text style={styles.headerAction}>···</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity onPress={() => router.push("/(app)/crisis")}>
+                <Text style={styles.headerHelp}>Get help</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert(info.partnerName, undefined, [
+                    {
+                      text: "I'm worried about them",
+                      onPress: () => setShowWorried(true),
+                    },
+                    ...(isEnded
+                      ? []
+                      : [
+                          {
+                            text: "Leave conversation",
+                            onPress: handleLeave,
+                          } as const,
+                        ]),
+                    {
+                      text: "Block",
+                      style: "destructive" as const,
+                      onPress: handleBlock,
+                    },
+                    {
+                      text: "Report",
+                      style: "destructive" as const,
+                      onPress: () => setShowReport(true),
+                    },
+                    {
+                      text: "Delete conversation",
+                      style: "destructive" as const,
+                      onPress: handleDelete,
+                    },
+                    { text: "Cancel", style: "cancel" as const },
+                  ]);
+                }}
+              >
+                <Text style={styles.headerAction}>···</Text>
+              </TouchableOpacity>
+            </View>
           ),
         }}
       />
@@ -349,8 +392,7 @@ export default function ConversationScreen() {
         {contactWarningText && (
           <View style={styles.contactWarning}>
             <Text style={styles.contactWarningText}>
-              Looks like you're sharing contact info. Ndo conversations are
-              anonymous for your safety — are you sure?
+              {"Just checking you mean to share this. It looks like contact info, and once it's sent they'll have it. Only share what you're comfortable with."}
             </Text>
             <View style={styles.contactWarningActions}>
               <TouchableOpacity
@@ -363,7 +405,7 @@ export default function ConversationScreen() {
                 onPress={confirmSendWithContact}
                 style={[styles.contactWarningBtn, styles.contactWarningSendBtn]}
               >
-                <Text style={styles.contactWarningSendText}>Send anyway</Text>
+                <Text style={styles.contactWarningSendText}>Send</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -442,6 +484,7 @@ export default function ConversationScreen() {
 
       <ReportModal
         visible={showReport}
+        ended={!!isEnded}
         onClose={() => setShowReport(false)}
         onSubmit={handleReport}
         loading={reporting}
@@ -475,6 +518,16 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: "#78716C",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerHelp: {
+    fontSize: 15,
+    color: "#3B82F6",
+    fontWeight: "600",
+    paddingHorizontal: 8,
   },
   headerAction: {
     fontSize: 22,

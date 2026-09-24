@@ -30,9 +30,14 @@ export default async function QueuePage() {
   const countFor = (userId: string) => activeMatchCounts[userId] ?? 0;
 
   // The database refuses these pairs too; this just says so before you try.
-  const excludedPairs: Record<string, "blocked" | "previously_matched"> = {};
+  // A pair whose earlier match ended can be matched again unless one blocked
+  // the other.
+  const excludedPairs: Record<string, "blocked" | "currently_matched"> = {};
+  const previousPairs: string[] = [];
   allMatches?.forEach((m) => {
-    excludedPairs[pairKey(m.user_a, m.user_b)] = "previously_matched";
+    const key = pairKey(m.user_a, m.user_b);
+    if (m.ended_at) previousPairs.push(key);
+    else excludedPairs[key] = "currently_matched";
   });
   blocks?.forEach((b) => {
     excludedPairs[pairKey(b.blocker_id, b.blocked_id)] = "blocked";
@@ -66,6 +71,7 @@ export default async function QueuePage() {
         <MatchingQueue
           intakes={matchable}
           excludedPairs={excludedPairs}
+          previousPairs={previousPairs}
           activeMatchCounts={activeMatchCounts}
         />
       )}

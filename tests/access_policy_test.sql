@@ -218,7 +218,7 @@ select pg_temp.check('user can still change their display name',
   (select display_name from public.profiles
     where id = '44444444-4444-4444-4444-444444444444') = 'outsider2');
 
--- 14. Matching refuses blocked pairs and repeat pairs.
+-- 14. Matching refuses blocked pairs. (Repeat pairs are allowed: see 26.)
 insert into public.blocks (blocker_id, blocked_id) values
   ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222');
 do $$
@@ -229,15 +229,6 @@ begin
 exception when raise_exception then
   if sqlerrm not like 'blocked_pair%' then raise; end if;
   raise notice 'PASS  a blocked pair cannot be matched';
-end $$;
-do $$
-begin
-  insert into public.matches (user_a, user_b) values
-    ('11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444');
-  raise exception 'FAIL: re-matched a previous pair';
-exception when raise_exception then
-  if sqlerrm not like 'previously_matched%' then raise; end if;
-  raise notice 'PASS  a previous pair cannot be re-matched';
 end $$;
 
 -- 15. Message rate limit: 20 a minute, then refused.
@@ -605,6 +596,269 @@ select pg_temp.check('operators still see concern handling in the log',
   (select count(*) from public.access_log
     where action in ('concern_handled', 'check_in_sent')) = 2);
 set role postgres;
+
+-- 27. Code of Conduct: re-matching, blocking, reporting after leaving, warnings.
+insert into auth.users (id) values
+  ('d0000000-0000-0000-0000-00000000000d'),
+  ('e0000000-0000-0000-0000-00000000000e'),
+  ('f0000000-0000-0000-0000-00000000000f');
+insert into public.profiles (id, display_name, date_of_birth) values
+  ('d0000000-0000-0000-0000-00000000000d', 'dana',  '1990-04-04'),
+  ('e0000000-0000-0000-0000-00000000000e', 'eli',   '1989-06-06'),
+  ('f0000000-0000-0000-0000-00000000000f', 'frank', '1986-08-08');
+
+insert into public.matches (id, user_a, user_b) values
+  ('aaaaaaaa-0000-0000-0000-000000000008',
+   'd0000000-0000-0000-0000-00000000000d', 'e0000000-0000-0000-0000-00000000000e');
+insert into public.conversations (id, match_id) values
+  ('cccccccc-0000-0000-0000-000000000008', 'aaaaaaaa-0000-0000-0000-000000000008');
+
+do $$
+begin
+  insert into public.matches (user_a, user_b) values
+    ('d0000000-0000-0000-0000-00000000000d', 'e0000000-0000-0000-0000-00000000000e');
+  raise exception 'FAIL: matched a pair twice at once';
+exception when unique_violation then
+  raise notice 'PASS  a pair cannot hold two active matches at once';
+end $$;
+
+set role authenticated;
+set request.jwt.claim.sub = 'd0000000-0000-0000-0000-00000000000d';
+select public.end_match('cccccccc-0000-0000-0000-000000000008', false);
+set role postgres;
+
+insert into public.matches (id, user_a, user_b) values
+  ('aaaaaaaa-0000-0000-0000-000000000009',
+   'd0000000-0000-0000-0000-00000000000d', 'e0000000-0000-0000-0000-00000000000e');
+insert into public.conversations (id, match_id) values
+  ('cccccccc-0000-0000-0000-000000000009', 'aaaaaaaa-0000-0000-0000-000000000009');
+select pg_temp.check('people who matched before can be matched again',
+  (select count(*) from public.matches
+    where user_a = 'd0000000-0000-0000-0000-00000000000d'
+      and user_b = 'e0000000-0000-0000-0000-00000000000e') = 2);
+
+-- Blocking without a report.
+set role authenticated;
+set request.jwt.claim.sub = 'e0000000-0000-0000-0000-00000000000e';
+select public.block_user('cccccccc-0000-0000-0000-000000000009');
+select pg_temp.check('a member can block without reporting',
+  exists (select 1 from public.blocks
+           where blocker_id = 'e0000000-0000-0000-0000-00000000000e'
+             and blocked_id = 'd0000000-0000-0000-0000-00000000000d'));
+set role postgres;
+select pg_temp.check('blocking files no report',
+  not exists (select 1 from public.reports
+               where reporter_id = 'e0000000-0000-0000-0000-00000000000e'));
+select pg_temp.check('blocking ends the match',
+  (select end_kind from public.matches
+    where id = 'aaaaaaaa-0000-0000-0000-000000000009') = 'blocked');
+select pg_temp.check('the blocked person gets the neutral departure notice',
+  (select leaver_name from public.match_end_notices
+    where match_id = 'aaaaaaaa-0000-0000-0000-000000000009'
+      and recipient_id = 'd0000000-0000-0000-0000-00000000000d') = 'eli');
+do $$
+begin
+  insert into public.matches (user_a, user_b) values
+    ('d0000000-0000-0000-0000-00000000000d', 'e0000000-0000-0000-0000-00000000000e');
+  raise exception 'FAIL: re-matched a blocked pair';
+exception when raise_exception then
+  if sqlerrm not like 'blocked_pair%' then raise; end if;
+  raise notice 'PASS  a block keeps a previous pair from being re-matched';
+end $$;
+
+set role authenticated;
+set request.jwt.claim.sub = 'e0000000-0000-0000-0000-00000000000e';
+do $$
+begin
+  delete from public.blocks where blocker_id = 'e0000000-0000-0000-0000-00000000000e';
+  raise exception 'FAIL: a member lifted a block';
+exception when insufficient_privilege then
+  raise notice 'PASS  a block cannot be lifted';
+end $$;
+do $$
+begin
+  insert into public.blocks (blocker_id, blocked_id)
+  values ('e0000000-0000-0000-0000-00000000000e', 'f0000000-0000-0000-0000-00000000000f');
+  raise exception 'FAIL: blocked someone outside a conversation';
+exception when insufficient_privilege then
+  raise notice 'PASS  blocks are only written through block_user or a report';
+end $$;
+set request.jwt.claim.sub = 'f0000000-0000-0000-0000-00000000000f';
+do $$
+begin
+  perform public.block_user('cccccccc-0000-0000-0000-000000000009');
+  raise exception 'FAIL: an outsider blocked through someone else''s conversation';
+exception when raise_exception then
+  if sqlerrm <> 'not a participant' then raise; end if;
+  raise notice 'PASS  only a participant can block';
+end $$;
+
+-- Reporting after leaving. The first conversation ended normally above.
+set request.jwt.claim.sub = 'e0000000-0000-0000-0000-00000000000e';
+select pg_temp.check('an ended conversation stays readable for reporting',
+  (select count(*) from public.conversations
+    where id = 'cccccccc-0000-0000-0000-000000000008') = 1);
+select public.report_message(
+  'cccccccc-0000-0000-0000-000000000008',
+  'd0000000-0000-0000-0000-00000000000d',
+  null, 'said something after I left', '{"messages": []}'::jsonb, true);
+set role postgres;
+select pg_temp.check('a member can report after the conversation ended',
+  exists (select 1 from public.reports
+           where reporter_id = 'e0000000-0000-0000-0000-00000000000e'));
+select pg_temp.check('reporting an ended match leaves how it ended alone',
+  (select end_kind from public.matches
+    where id = 'aaaaaaaa-0000-0000-0000-000000000008') = 'left');
+
+-- Warnings.
+set role authenticated;
+do $$
+begin
+  perform public.warn_user(
+    (select id from public.reports
+      where reported_user_id = 'd0000000-0000-0000-0000-00000000000d'), 'be kind');
+  raise exception 'FAIL: a non-operator sent a warning';
+exception when raise_exception then
+  if sqlerrm <> 'not_admin' then raise; end if;
+  raise notice 'PASS  only operators can send a warning';
+end $$;
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.warn_user(
+  (select id from public.reports
+    where reported_user_id = 'd0000000-0000-0000-0000-00000000000d'),
+  'Please let people grieve their own way.');
+
+set request.jwt.claim.sub = 'd0000000-0000-0000-0000-00000000000d';
+select pg_temp.check('the warned member sees the warning',
+  (select guidance from public.warnings) = 'Please let people grieve their own way.');
+update public.warnings set seen_at = now();
+select pg_temp.check('they can acknowledge it',
+  (select seen_at is not null from public.warnings));
+do $$
+begin
+  update public.warnings set guidance = 'nothing';
+  raise exception 'FAIL: a member rewrote their warning';
+exception when insufficient_privilege then
+  raise notice 'PASS  a warning cannot be changed beyond acknowledging it';
+end $$;
+do $$
+begin
+  insert into public.warnings (user_id, guidance)
+  values ('e0000000-0000-0000-0000-00000000000e', 'fake');
+  raise exception 'FAIL: a member wrote a warning';
+exception when insufficient_privilege then
+  raise notice 'PASS  members cannot write warnings';
+end $$;
+set request.jwt.claim.sub = 'e0000000-0000-0000-0000-00000000000e';
+select pg_temp.check('the reporter cannot see the warning',
+  (select count(*) from public.warnings) = 0);
+set role postgres;
+select pg_temp.check('sending a warning is written to the access log',
+  exists (select 1 from public.access_log
+           where action = 'user_warned'
+             and subject_user_id = 'd0000000-0000-0000-0000-00000000000d'));
+
+set role anon;
+do $$
+begin
+  perform public.block_user('cccccccc-0000-0000-0000-000000000009');
+  raise exception 'FAIL: block_user callable signed out';
+exception when insufficient_privilege then
+  raise notice 'PASS  signed-out callers cannot block';
+end $$;
+do $$
+begin
+  perform public.warn_user(gen_random_uuid(), 'x');
+  raise exception 'FAIL: warn_user callable signed out';
+exception when insufficient_privilege then
+  raise notice 'PASS  signed-out callers cannot warn';
+end $$;
+set role postgres;
+
+-- No transcription.
+select pg_temp.check('voice memos have no transcript columns',
+  not exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'voice_memos'
+                 and column_name like 'transcript%'));
+
+-- 28. Intake pace and topics to avoid.
+set role authenticated;
+set request.jwt.claim.sub = 'f0000000-0000-0000-0000-00000000000f';
+insert into public.intake_responses
+  (user_id, relationship, time_since_loss, match_preference, talk_frequency, avoid_topics)
+values
+  ('f0000000-0000-0000-0000-00000000000f', 'friend', '1–2 years', 'open_to_anyone',
+   'on_hard_days', 'religion');
+set role postgres;
+select pg_temp.check('intake records how often someone wants to talk',
+  (select talk_frequency = 'on_hard_days' and avoid_topics = 'religion'
+     from public.intake_responses
+    where user_id = 'f0000000-0000-0000-0000-00000000000f'));
+do $$
+begin
+  update public.intake_responses set talk_frequency = 'hourly'
+   where user_id = 'f0000000-0000-0000-0000-00000000000f';
+  raise exception 'FAIL: accepted an unknown talk frequency';
+exception when check_violation then
+  raise notice 'PASS  talk frequency only takes known values';
+end $$;
+
+-- 29. Feedback.
+set role authenticated;
+set request.jwt.claim.sub = 'f0000000-0000-0000-0000-00000000000f';
+insert into public.feedback (body) values ('Would love a way to mute notifications.');
+select pg_temp.check('a member can send feedback',
+  (select count(*) from public.feedback) = 1);
+do $$
+begin
+  insert into public.feedback (user_id, body)
+  values ('e0000000-0000-0000-0000-00000000000e', 'pretending to be eli');
+  raise exception 'FAIL: sent feedback as someone else';
+exception when insufficient_privilege then
+  raise notice 'PASS  feedback can only be sent as yourself';
+end $$;
+do $$
+begin
+  update public.feedback set body = 'changed';
+  raise exception 'FAIL: a member edited feedback';
+exception when insufficient_privilege then
+  raise notice 'PASS  a member cannot edit sent feedback';
+end $$;
+do $$
+begin
+  delete from public.feedback;
+  raise exception 'FAIL: a member deleted feedback';
+exception when insufficient_privilege then
+  raise notice 'PASS  a member cannot delete sent feedback';
+end $$;
+do $$
+begin
+  for i in 1..9 loop
+    insert into public.feedback (body) values ('more ' || i);
+  end loop;
+  insert into public.feedback (body) values ('one too many');
+  raise exception 'FAIL: feedback was not rate limited';
+exception when raise_exception then
+  if sqlerrm not like 'rate_limited%' then raise; end if;
+  raise notice 'PASS  feedback is capped at 10 a day';
+end $$;
+
+set request.jwt.claim.sub = 'e0000000-0000-0000-0000-00000000000e';
+select pg_temp.check('members cannot read each other''s feedback',
+  (select count(*) from public.feedback) = 0);
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check('operators can read feedback',
+  (select count(*) from public.feedback) = 1);
+update public.feedback set read_at = now();
+select pg_temp.check('operators can mark feedback read',
+  (select read_at is not null from public.feedback));
+
+set role postgres;
+delete from auth.users where id = 'f0000000-0000-0000-0000-00000000000f';
+select pg_temp.check('feedback is deleted with the account',
+  (select count(*) from public.feedback) = 0);
 
 set role postgres;
 \echo ''
