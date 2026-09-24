@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { IPhone } from "@/components/IPhone";
 import appHome from "../../public/app-home.png";
 import appHomeDark from "../../public/app-home-dark.png";
 
@@ -17,11 +18,11 @@ const steps = [
   },
   {
     title: "We match you by hand",
-    body: "A real person reads what you shared and pairs you with someone whose experience is close to yours. No algorithm, no swiping.",
+    body: "A real person reads what you shared and matches you with people whose experience is close to yours. No algorithm, no swiping.",
   },
   {
     title: "Talk at your own pace",
-    body: "Write or send a voice memo whenever you're ready, day or night. There are no feeds, no likes and no audience — just the two of you.",
+    body: "Write or send a voice memo whenever you're ready, day or night. Every conversation is private and one‑to‑one: no feeds, no likes, no audience.",
   },
 ];
 
@@ -87,13 +88,13 @@ export default function Home() {
               <span className="accent-italic">too.</span>
             </h1>
             <p className="lede">
-              Ndo matches you one-on-one with another person who is grieving a
-              loss like yours. Every match is made by a person, not an
-              algorithm.
+              Ndo matches you with people who are grieving a loss like yours,
+              for private one‑to‑one conversations. Every match is made by a
+              person, not an algorithm.
             </p>
             <GetTheApp />
           </div>
-          <div className="phone">
+          <IPhone>
             {/* Light and dark captures of the app; CSS shows the one that
                 matches the reader's color scheme. */}
             <Image
@@ -109,7 +110,7 @@ export default function Home() {
               alt="The Ndo app: a quiet list of conversations with the people you've been matched with."
               sizes="(min-width: 60rem) 20rem, 80vw"
             />
-          </div>
+          </IPhone>
         </section>
 
         <section className="statement" aria-label="Why Ndo">
@@ -124,7 +125,7 @@ export default function Home() {
         <section className="wrap section" id="how" aria-labelledby="how-title">
           <div className="section-head">
             <p className="eyebrow">How it works</p>
-            <h2 id="how-title">One person, matched with care.</h2>
+            <h2 id="how-title">Matched by hand, with care.</h2>
           </div>
           <ol className="steps">
             {steps.map((step, i) => (
@@ -142,7 +143,7 @@ export default function Home() {
         <section className="wrap section" aria-labelledby="privacy-title">
           <div className="section-head">
             <p className="eyebrow">Privacy</p>
-            <h2 id="privacy-title">What you share stays between the two of you.</h2>
+            <h2 id="privacy-title">What you share stays in the conversation.</h2>
           </div>
           <figure className="promise">
             <blockquote>{PROMISE}</blockquote>

@@ -250,19 +250,167 @@ img {
   letter-spacing: -0.02em;
 }
 
-.phone {
+/* iPhone frame (see components/IPhone.tsx). 390 x 844 pt screen: 47 pt status
+   bar, 763 pt of app, 34 pt home indicator. Inner sizes use cqw of the
+   screen, so 1pt = 100/390 cqw. */
+
+.iphone {
+  position: relative;
   justify-self: center;
-  width: min(100%, 20rem);
+  width: min(100%, 19.5rem);
   padding: 0.625rem;
-  border-radius: 3rem;
-  background: var(--phone-frame);
+  border: 2px solid transparent;
+  border-radius: 3.5rem;
+  background:
+    linear-gradient(#141312, #141312) padding-box,
+    linear-gradient(150deg, #8f8a83, #3b3834 35%, #77726b 60%, #2e2c29) border-box;
   box-shadow:
-    0 1px 2px rgba(28, 27, 25, 0.08),
-    0 30px 60px -20px rgba(28, 27, 25, 0.25);
+    0 1px 2px rgba(28, 27, 25, 0.1),
+    0 40px 70px -30px rgba(28, 27, 25, 0.35);
 }
 
-.phone img {
-  border-radius: 2.4rem;
+.iphone-button {
+  position: absolute;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #4d4944, #8f8a83);
+}
+
+.iphone-action,
+.iphone-volume-up,
+.iphone-volume-down {
+  left: -4px;
+}
+
+.iphone-action {
+  top: 16%;
+  height: 4.5%;
+}
+
+.iphone-volume-up {
+  top: 23.5%;
+  height: 8%;
+}
+
+.iphone-volume-down {
+  top: 33.5%;
+  height: 8%;
+}
+
+.iphone-power {
+  right: -4px;
+  top: 26%;
+  height: 12%;
+  background: linear-gradient(270deg, #4d4944, #8f8a83);
+}
+
+.iphone-screen {
+  container-type: inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 390 / 844;
+  overflow: hidden;
+  border-radius: 2.8rem;
+  background: var(--paper);
+}
+
+.iphone-status {
+  position: relative;
+  flex: 0 0 12.05cqw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.6cqw 7.4cqw 0 9.6cqw;
+  color: var(--ink);
+}
+
+.iphone-time {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--sans);
+  font-size: 4.35cqw;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.iphone-island {
+  position: absolute;
+  top: 2.8cqw;
+  left: 50%;
+  width: 32.3cqw;
+  height: 9.5cqw;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #000;
+}
+
+.iphone-indicators {
+  display: flex;
+  align-items: center;
+  gap: 1.4cqw;
+}
+
+.iphone-indicators svg {
+  height: 3.1cqw;
+  fill: currentColor;
+}
+
+.iphone-signal {
+  width: 4.6cqw;
+}
+
+.iphone-wifi {
+  width: 4.2cqw;
+}
+
+.iphone-battery {
+  position: relative;
+  width: 6.6cqw;
+  height: 3.2cqw;
+  padding: 0.35cqw;
+  border: 1px solid currentColor;
+  border-radius: 1cqw;
+  opacity: 0.9;
+}
+
+.iphone-battery::after {
+  content: "";
+  position: absolute;
+  right: -1cqw;
+  top: 50%;
+  width: 0.6cqw;
+  height: 1.2cqw;
+  transform: translateY(-50%);
+  border-radius: 0 0.4cqw 0.4cqw 0;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.iphone-battery-level {
+  display: block;
+  width: 80%;
+  height: 100%;
+  border-radius: 0.5cqw;
+  background: currentColor;
+}
+
+.iphone-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.iphone-home {
+  flex: 0 0 8.72cqw;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 2.1cqw;
+}
+
+.iphone-home-bar {
+  width: 34.4cqw;
+  height: 1.3cqw;
+  border-radius: 999px;
+  background: var(--ink);
 }
 
 .only-dark {

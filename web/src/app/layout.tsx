@@ -17,7 +17,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Ndo — Talk with someone who has lost someone, too",
   description:
-    "Ndo matches you one-on-one with another person who is grieving a loss like yours. Every match is made by a person, not an algorithm.",
+    "Ndo matches you with people who are grieving a loss like yours, for private one-to-one conversations. Every match is made by a person, not an algorithm.",
 };
 
 export const viewport: Viewport = {
