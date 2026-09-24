@@ -1,10 +1,13 @@
 // Building blocks for the redesigned home (Conversations) screen. They are
 // presentational only: the screen owns the data and passes callbacks in.
 // Copy in CheckInCard and DepartureNotice is founder-approved; don't edit it.
+//
+// The feel is stationery, not software: ink on paper, type doing the work,
+// hairline rules instead of boxes, and nothing that counts or gamifies.
 
 import { Linking, Pressable, StyleSheet, View } from "react-native";
-import { gutter, hairlineWidth, minTapTarget, radius, space, useTheme } from "../../theme";
-import { Avatar, Button, Icon, ListRow, Text } from "../ui";
+import { fonts, gutter, hairlineWidth, minTapTarget, radius, space, useTheme } from "../../theme";
+import { Avatar, Button, Icon, Text } from "../ui";
 
 // ---------------------------------------------------------------------------
 // Conversation row
@@ -19,6 +22,8 @@ export interface ConversationRowProps {
   ended: boolean;
   onPress: () => void;
 }
+
+export const CONVERSATION_AVATAR_SIZE = 48;
 
 export function ConversationRow({
   partnerId,
@@ -35,38 +40,47 @@ export function ConversationRow({
     : preview ?? "New match. Say hello when you're ready.";
 
   return (
-    <ListRow
-      title={partnerName}
-      subtitle={subtitle}
-      emphasized={unread}
+    <Pressable
       onPress={onPress}
+      accessibilityRole="button"
       accessibilityLabel={`${partnerName}${unread ? ", unread" : ""}. ${subtitle}`}
-      leading={
-        <View style={ended && styles.faded}>
-          <Avatar seed={partnerId} name={partnerName} size={52} />
-        </View>
-      }
-      trailing={
-        <View style={styles.meta}>
+      style={({ pressed }) => [styles.row, pressed && { backgroundColor: color.surfaceSunken }]}
+    >
+      <View style={ended && styles.faded}>
+        <Avatar seed={partnerId} name={partnerName} size={CONVERSATION_AVATAR_SIZE} />
+      </View>
+      <View style={styles.rowBody}>
+        <View style={styles.rowTop}>
+          <Text variant="title3" numberOfLines={1} style={styles.rowName}>
+            {partnerName}
+          </Text>
+          {unread && (
+            <View
+              style={[styles.unreadDot, { backgroundColor: color.accent }]}
+              accessibilityElementsHidden
+            />
+          )}
           {time && (
-            <Text variant="footnote" color={unread ? "accent" : "textTertiary"}>
+            <Text variant="footnote" color="textTertiary">
               {time}
             </Text>
           )}
-          <View
-            style={[
-              styles.unreadDot,
-              { backgroundColor: unread ? color.accent : "transparent" },
-            ]}
-          />
         </View>
-      }
-    />
+        <Text
+          variant="subhead"
+          color={unread ? "text" : "textSecondary"}
+          numberOfLines={2}
+          style={ended && styles.italic}
+        >
+          {subtitle}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Onboarding: both steps in one progress block
+// Onboarding: the two steps as one quiet, numbered list
 // ---------------------------------------------------------------------------
 
 export interface OnboardingProgressProps {
@@ -85,11 +99,11 @@ export function OnboardingProgress({
   onIntake,
 }: OnboardingProgressProps) {
   const { color } = useTheme();
-  const done = Number(guidelinesDone) + Number(intakeDone);
 
   const steps = [
     {
       key: "guidelines",
+      n: "1",
       title: "Read the community guidelines",
       desc: "The ground rules for every conversation",
       complete: guidelinesDone,
@@ -98,6 +112,7 @@ export function OnboardingProgress({
     },
     {
       key: "intake",
+      n: "2",
       title: "Tell us about your loss",
       desc: "So we can match you with someone who understands",
       complete: intakeDone,
@@ -107,90 +122,84 @@ export function OnboardingProgress({
   ];
 
   return (
-    <View style={[styles.card, { backgroundColor: color.surface }]}>
-      <View style={styles.cardIntro}>
-        <Text variant="title2">
+    <View style={styles.section}>
+      <View style={styles.intro}>
+        <Text variant="title1">
           Welcome{displayName ? `, ${displayName}` : ""}
         </Text>
-        <Text variant="subhead" color="textSecondary">
+        <Text variant="callout" color="textSecondary">
           {"A couple of quick steps and we'll start looking for your match."}
         </Text>
       </View>
 
-      <View
-        style={styles.progressRow}
-        accessibilityRole="progressbar"
-        accessibilityLabel={`${done} of 2 steps done`}
-        accessibilityValue={{ min: 0, max: 2, now: done }}
-      >
-        <View style={[styles.progressTrack, { backgroundColor: color.surfaceSunken }]}>
-          <View
-            style={[
-              styles.progressFill,
-              { backgroundColor: color.accent, width: `${(done / 2) * 100}%` },
+      <View style={[styles.rules, { borderColor: color.hairline }]}>
+        {steps.map((step, i) => (
+          <Pressable
+            key={step.key}
+            onPress={step.onPress}
+            disabled={!step.available}
+            accessibilityRole="button"
+            accessibilityLabel={`Step ${step.n}: ${step.title}${step.complete ? ", done" : ""}`}
+            accessibilityState={{ disabled: !step.available }}
+            style={({ pressed }) => [
+              styles.step,
+              i > 0 && { borderTopWidth: hairlineWidth, borderTopColor: color.hairline },
+              pressed && { backgroundColor: color.surfaceSunken },
             ]}
-          />
-        </View>
-        <Text variant="caption" color="textTertiary">
-          {done} of 2
-        </Text>
-      </View>
-
-      {steps.map((step, i) => (
-        <Pressable
-          key={step.key}
-          onPress={step.onPress}
-          disabled={!step.available}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !step.available, checked: step.complete }}
-          style={({ pressed }) => [
-            styles.step,
-            i > 0 && { borderTopWidth: hairlineWidth, borderTopColor: color.hairline },
-            pressed && { opacity: 0.6 },
-          ]}
-        >
-          <Icon
-            name={step.complete ? "checkCircle" : "circle"}
-            size={24}
-            color={step.complete || step.available ? color.accent : color.textTertiary}
-          />
-          <View style={styles.stepText}>
+          >
             <Text
-              variant="bodyMedium"
-              color={step.complete || !step.available ? "textSecondary" : "text"}
+              style={[
+                styles.numeral,
+                { color: step.available ? color.accent : color.textTertiary },
+              ]}
             >
-              {step.title}
+              {step.n}
             </Text>
-            <Text variant="footnote" color={step.complete ? "accent" : "textSecondary"}>
-              {step.complete ? "Done" : step.desc}
-            </Text>
-          </View>
-          {step.available && (
-            <Icon name="chevronRight" size={14} color={color.textTertiary} />
-          )}
-        </Pressable>
-      ))}
+            <View style={styles.stepText}>
+              <Text
+                variant="bodyMedium"
+                color={step.available ? "text" : "textSecondary"}
+              >
+                {step.title}
+              </Text>
+              <Text variant="footnote" color="textSecondary">
+                {step.complete ? "Done" : step.desc}
+              </Text>
+            </View>
+            {step.complete ? (
+              <Icon name="check" size={16} color={color.textTertiary} />
+            ) : step.available ? (
+              <Icon name="chevronRight" size={14} color={color.textTertiary} />
+            ) : null}
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Check-in from Ndo. Never says why it was sent.
+// Check-in from Ndo. Never says why it was sent. Set like a short letter.
 // ---------------------------------------------------------------------------
 
 export function CheckInCard({ onDismiss }: { onDismiss: () => void }) {
   const { color } = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: color.accentSoft }]}>
-      <View style={styles.cardIntro}>
-        <Text variant="title3">Checking in on you</Text>
-        <Text variant="callout" color="textSecondary">
-          {"Grief can get really heavy. If things feel like too much right now, you don't have to carry it alone."}
-        </Text>
-      </View>
+    <View
+      style={[
+        styles.letter,
+        { backgroundColor: color.surface, borderColor: color.hairline },
+      ]}
+    >
+      <Text variant="caption" color="textTertiary" style={styles.eyebrow}>
+        FROM NDO
+      </Text>
+      <Text variant="title2">Checking in on you</Text>
+      <Text variant="callout" color="textSecondary" style={styles.letterBody}>
+        {"Grief can get really heavy. If things feel like too much right now, you don't have to carry it alone."}
+      </Text>
       <Button
         title="Call or text 988"
-        icon="phone"
         block
         onPress={() => Linking.openURL("tel:988")}
       />
@@ -203,20 +212,22 @@ export function CheckInCard({ onDismiss }: { onDismiss: () => void }) {
           Text HELLO to 741741
         </Text>
       </Pressable>
-      <Text variant="footnote" color="textSecondary" align="center">
+      <Text variant="footnote" color="textTertiary" align="center">
         Both are free, confidential, and there any time, day or night.
       </Text>
-      <Pressable onPress={onDismiss} accessibilityRole="button" style={styles.textLink}>
-        <Text variant="subhead" color="textSecondary" align="center">
-          {"I'm okay for now"}
-        </Text>
-      </Pressable>
+      <View style={[styles.letterFoot, { borderTopColor: color.hairline }]}>
+        <Pressable onPress={onDismiss} accessibilityRole="button" style={styles.textLink}>
+          <Text variant="subhead" color="textSecondary" align="center">
+            {"I'm okay for now"}
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Departure notice
+// Departure notice: a quiet note between rules, not an alert.
 // ---------------------------------------------------------------------------
 
 export function DepartureNotice({
@@ -228,19 +239,21 @@ export function DepartureNotice({
 }) {
   const { color } = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: color.surfaceSunken }]}>
-      <View style={styles.cardIntro}>
-        <Text variant="headline">{leaverName} left the conversation.</Text>
-        <Text variant="subhead" color="textSecondary">
-          People step back for their own reasons — it isn&apos;t about you.
-        </Text>
-      </View>
-      <Button
-        title="Get matched with someone new"
-        variant="secondary"
+    <View style={[styles.note, { borderColor: color.hairline }]}>
+      <Text variant="title3">{leaverName} left the conversation.</Text>
+      <Text variant="callout" color="textSecondary">
+        People step back for their own reasons — it isn&apos;t about you.
+      </Text>
+      <Pressable
         onPress={onDismiss}
-        style={styles.alignStart}
-      />
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.noteAction, pressed && { opacity: 0.6 }]}
+      >
+        <Text variant="subheadMedium" color="accent">
+          Get matched with someone new
+        </Text>
+        <Icon name="chevronRight" size={12} color={color.accent} />
+      </Pressable>
     </View>
   );
 }
@@ -253,16 +266,14 @@ export function WaitingState() {
   const { color } = useTheme();
   return (
     <View style={styles.waiting}>
-      <View style={[styles.waitingIcon, { backgroundColor: color.accentSoft }]}>
-        <Icon name="leaf" size={26} color={color.accent} />
-      </View>
-      <Text variant="title2" align="center">
+      <View style={[styles.rule, { backgroundColor: color.textTertiary }]} />
+      <Text variant="title1" align="center">
         {"We'll have matches for you shortly"}
       </Text>
       <Text variant="callout" color="textSecondary" align="center">
         {"A real person reads your intake and pairs you with people whose experience fits yours. We'll bring them here as soon as they're ready."}
       </Text>
-      <Text variant="footnote" color="textTertiary" align="center">
+      <Text variant="footnote" color="textTertiary" align="center" style={styles.waitingHint}>
         Pull down to check for updates.
       </Text>
     </View>
@@ -274,20 +285,14 @@ export function WaitingState() {
 // ---------------------------------------------------------------------------
 
 export function CrisisHelpButton({ onPress }: { onPress: () => void }) {
-  const { color } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Crisis help"
-      hitSlop={space.sm}
-      style={({ pressed }) => [
-        styles.crisis,
-        { borderColor: color.hairline, backgroundColor: pressed ? color.surfaceSunken : "transparent" },
-      ]}
+      style={({ pressed }) => [styles.crisis, pressed && { opacity: 0.6 }]}
     >
-      <Icon name="support" size={16} color={color.textSecondary} />
-      <Text variant="footnote" color="textSecondary">
+      <Text variant="subhead" color="textSecondary">
         Crisis help
       </Text>
     </Pressable>
@@ -309,87 +314,124 @@ export function formatListTime(iso: string, now: Date = new Date()): string {
 }
 
 const styles = StyleSheet.create({
-  faded: {
-    opacity: 0.5,
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.lg,
+    paddingHorizontal: gutter,
+    paddingVertical: space.lg + space.xxs,
   },
-  meta: {
-    alignItems: "flex-end",
-    alignSelf: "stretch",
-    justifyContent: "space-between",
-    paddingVertical: space.xxs,
+  faded: {
+    opacity: 0.45,
+  },
+  rowBody: {
+    flex: 1,
+    gap: space.xxs,
+  },
+  rowTop: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: space.sm,
   },
-  unreadDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  card: {
-    marginHorizontal: space.lg,
-    marginBottom: space.lg,
-    borderRadius: radius.lg,
-    padding: space.xl,
-    gap: space.md,
-  },
-  cardIntro: {
-    gap: space.xs + space.xxs,
-    marginBottom: space.xs,
-  },
-  progressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.md,
-    marginBottom: space.xs,
-  },
-  progressTrack: {
+  rowName: {
     flex: 1,
-    height: 6,
-    borderRadius: radius.pill,
-    overflow: "hidden",
   },
-  progressFill: {
-    height: "100%",
-    borderRadius: radius.pill,
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  italic: {
+    fontStyle: "italic",
+  },
+  section: {
+    paddingTop: space.sm,
+  },
+  intro: {
+    paddingHorizontal: gutter,
+    gap: space.sm,
+    marginBottom: space.xxl,
+  },
+  rules: {
+    borderTopWidth: hairlineWidth,
+    borderBottomWidth: hairlineWidth,
   },
   step: {
-    minHeight: minTapTarget + space.md,
+    minHeight: minTapTarget + space.xl,
     flexDirection: "row",
     alignItems: "center",
-    gap: space.md,
-    paddingVertical: space.md,
+    gap: space.lg,
+    paddingHorizontal: gutter,
+    paddingVertical: space.lg,
+  },
+  numeral: {
+    fontFamily: fonts.serif,
+    fontSize: 28,
+    lineHeight: 34,
+    width: 20,
   },
   stepText: {
     flex: 1,
     gap: space.xxs,
   },
+  letter: {
+    marginHorizontal: space.lg,
+    marginBottom: space.xxl,
+    borderRadius: radius.md,
+    borderWidth: hairlineWidth,
+    paddingHorizontal: space.xxl,
+    paddingTop: space.xxl,
+    paddingBottom: space.sm,
+    gap: space.md,
+  },
+  eyebrow: {
+    letterSpacing: 1.2,
+  },
+  letterBody: {
+    marginBottom: space.sm,
+  },
+  letterFoot: {
+    borderTopWidth: hairlineWidth,
+    marginTop: space.xs,
+  },
   textLink: {
     minHeight: minTapTarget,
     justifyContent: "center",
   },
-  alignStart: {
+  note: {
+    marginHorizontal: gutter,
+    marginBottom: space.xl,
+    paddingTop: space.lg,
+    paddingBottom: space.xs,
+    borderTopWidth: hairlineWidth,
+    borderBottomWidth: hairlineWidth,
+    gap: space.xs + space.xxs,
+  },
+  noteAction: {
+    minHeight: minTapTarget,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs,
     alignSelf: "flex-start",
   },
   waiting: {
     alignItems: "center",
     paddingHorizontal: gutter + space.lg,
-    paddingTop: space.huge,
-    gap: space.md,
+    paddingTop: space.huge + space.xxl,
+    gap: space.lg,
   },
-  waitingIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
+  rule: {
+    width: 32,
+    height: 1,
     marginBottom: space.sm,
   },
+  waitingHint: {
+    marginTop: space.sm,
+  },
   crisis: {
-    minHeight: 32,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.xs,
-    paddingHorizontal: space.md,
-    borderRadius: radius.pill,
-    borderWidth: 1,
+    minHeight: minTapTarget,
+    minWidth: minTapTarget,
+    justifyContent: "center",
+    paddingLeft: space.sm,
   },
 });

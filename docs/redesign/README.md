@@ -13,41 +13,55 @@ Tracks the redesign described in [DESIGN_BRIEF.md](../DESIGN_BRIEF.md).
 No live screen has changed yet. The mockup is a development-only route,
 `/design-preview`, that renders the new home screen with sample data.
 
-## Home mockup (390×844)
+## Home mockup (390×844), round 2
 
-Screenshots are in [`home-mockup/`](home-mockup/), each in light and dark.
+Round 1 read as generic (beige, slate blue, pastel avatars, tinted boxes).
+Round 2 aims for premium, made for people who are grieving: stationery rather
+than software.
 
-| State | File | What it shows |
-| --- | --- | --- |
-| New user | `new-*.png` | The two onboarding steps as one progress block |
-| Waiting | `waiting-*.png` | Calm waiting state after onboarding, before a match |
-| Active | `active-*.png` | Conversation rows: avatar, name, preview, time, unread dot, hairlines |
-| Support | `support-*.png` | Check-in card and departure notice above the list (full scroll) |
-| Components | `components-*.png` | The component kit: type, color, buttons, avatars, grouped list, banners, fields, pills |
+- **Paper and ink.** Almost everything is a warm neutral. The accent appears
+  only on the primary action, links and the unread mark.
+- **Type does the work.** Serif names in the list, two-line previews, hairline
+  rules instead of cards.
+- **Nothing gamified.** The onboarding progress bar and "1 of 2" are gone;
+  the steps are numbered in serif numerals instead.
+- **Quiet safety.** "Crisis help" is plain text in the header. The check-in is
+  set like a short letter ("From Ndo").
+- **Neutral avatars.** Initials on close warm greys, no rainbow tints.
+- **Tab bar in ink**, not accent.
+
+Screenshots are in [`home-mockup/`](home-mockup/).
+
+| File | What it shows |
+| --- | --- |
+| `accent-comparison.png` | The three accent options side by side |
+| `active-*-light.png`, `active-ink-dark.png` | Conversation list |
+| `new-ink-light.png` | New user, onboarding steps |
+| `waiting-ink-light.png` | Waiting for a match |
+| `support-ink-*.png` | Check-in and departure notice above the list (full scroll) |
+| `components-ink-light.png` | The component kit |
 
 The tab bar in the mockup is a stand-in; the real one arrives with the
 navigation step.
 
 ## Decisions to confirm
 
-1. **Palette.** Background `#F7F4EF`, text `#221E1A`, accent `#35507A` (deep
-   muted blue). Dark mode lightens the accent to `#9DB4D8`. Every text pairing
-   meets WCAG AA.
-2. **Fonts.** Newsreader for headings, Inter for body text.
-3. **Check-in card.** One button (988), with "Text HELLO to 741741" as a text
-   link beneath it. Copy unchanged.
-4. **Crisis help.** A quiet outlined "Crisis help" pill in the header, next to
-   the large title. The same pill will sit on every screen.
-5. **Errors in forms** use an icon and a dark outline, not red, so red stays
-   reserved for "Yes, right now".
+1. **Accent.** Ink `#1F2E4A` (recommended; the brief's "deep muted blue",
+   pushed toward fountain-pen ink), Spruce `#22433B`, or Plum `#46304B`
+   (aubergine, the traditional half-mourning color).
+2. **Fonts.** Newsreader for headings and names, Inter for body text.
+3. **Check-in card.** One button (988), "Text HELLO to 741741" as a link.
+   Copy unchanged.
+4. **Crisis help** as plain text in the header of every screen.
 
 ## Viewing it yourself
 
 ```bash
 cd mobile
 npx expo start --web
-# open http://localhost:8081/design-preview?state=active
+# open http://localhost:8081/design-preview?state=active&accent=ink
 # states: new, waiting, active, support, components
+# accents: ink, spruce, plum
 ```
 
 Web needs a `mobile/.env` with any Supabase URL and key (see `.env.example`);

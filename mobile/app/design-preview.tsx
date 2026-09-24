@@ -3,6 +3,7 @@
 // screens change. Development builds only (see app/_layout.tsx).
 //
 //   /design-preview?state=new | waiting | active | support | components
+//                  &accent=ink | spruce | plum
 
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -10,6 +11,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   CheckInCard,
+  CONVERSATION_AVATAR_SIZE,
   ConversationRow,
   CrisisHelpButton,
   DepartureNotice,
@@ -30,7 +32,16 @@ import {
   Text,
   TextField,
 } from "../src/components/ui";
-import { gutter, hairlineWidth, minTapTarget, space, useTheme } from "../src/theme";
+import {
+  AccentContext,
+  accents,
+  gutter,
+  hairlineWidth,
+  minTapTarget,
+  space,
+  useTheme,
+  type AccentName,
+} from "../src/theme";
 
 type PreviewState = "new" | "waiting" | "active" | "support" | "components";
 
@@ -74,6 +85,16 @@ const conversations = [
 ];
 
 export default function DesignPreview() {
+  const { accent } = useLocalSearchParams<{ accent?: string }>();
+  const accentName: AccentName = accent && accent in accents ? (accent as AccentName) : "ink";
+  return (
+    <AccentContext.Provider value={accentName}>
+      <PreviewScreen />
+    </AccentContext.Provider>
+  );
+}
+
+function PreviewScreen() {
   const { state = "active" } = useLocalSearchParams<{ state?: PreviewState }>();
   const { color } = useTheme();
   const insets = useSafeAreaInsets();
@@ -119,7 +140,7 @@ function HomeMock({ state }: { state: PreviewState }) {
       )}
 
       {(state === "active" || state === "support") && (
-        <ListSection inset={gutter + 52 + space.md}>
+        <ListSection inset={gutter + CONVERSATION_AVATAR_SIZE + space.lg}>
           {conversations.map((c) => (
             <ConversationRow key={c.id} {...c} onPress={noop} />
           ))}
@@ -150,8 +171,8 @@ function TabBarMock() {
     >
       {tabs.map((t) => (
         <View key={t.label} style={styles.tab}>
-          <Icon name={t.icon} size={24} color={t.active ? color.accent : color.textTertiary} />
-          <Text variant="caption" color={t.active ? "accent" : "textTertiary"}>
+          <Icon name={t.icon} size={24} color={t.active ? color.text : color.textTertiary} />
+          <Text variant="caption" color={t.active ? "text" : "textTertiary"}>
             {t.label}
           </Text>
         </View>

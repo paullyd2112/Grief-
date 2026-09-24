@@ -2,27 +2,29 @@
 // shape from here; nothing else should hard-code a hex value or font size.
 // See docs/DESIGN_BRIEF.md.
 
+import { createContext, useContext } from "react";
 import { useColorScheme } from "react-native";
 
 // ---------------------------------------------------------------------------
 // Color
 //
-// Warm off-white and warm near-black, one deep muted blue accent. Red is
-// reserved for the "Yes, right now" answer in the worried sheet. Every text
-// pairing below meets WCAG AA (4.5:1) against the surface it sits on.
+// Paper and ink. Almost everything is a warm neutral; the one accent is kept
+// for the primary action, links and the unread mark, so it means something
+// when it appears. Red is reserved for the "Yes, right now" answer in the
+// worried sheet. Every text pairing meets WCAG AA (4.5:1).
 // ---------------------------------------------------------------------------
 
 export interface Palette {
-  background: string; // screen background
+  background: string; // screen background (paper)
   surface: string; // cards, sheets, grouped list cells
   surfaceSunken: string; // text fields, subtle fills
-  text: string; // primary text
+  text: string; // primary text (ink)
   textSecondary: string; // supporting copy
   textTertiary: string; // timestamps, hints, placeholders
   hairline: string; // separators and outlines
-  accent: string; // the one accent: buttons, links, unread dot, own bubbles
+  accent: string; // primary buttons, links, unread mark, own bubbles
   accentPressed: string;
-  accentSoft: string; // tinted fills: check-in card, selected pills
+  accentSoft: string; // selected pills
   onAccent: string; // text and icons on top of accent
   bubbleOwn: string;
   bubbleOwnText: string;
@@ -34,70 +36,85 @@ export interface Palette {
   scrim: string; // behind sheets and dialogs
 }
 
-const light: Palette = {
-  background: "#F7F4EF",
-  surface: "#FFFFFF",
-  surfaceSunken: "#EFEAE3",
-  text: "#221E1A",
-  textSecondary: "#5F5850",
-  textTertiary: "#716960",
-  hairline: "#E4DDD3",
-  accent: "#35507A",
-  accentPressed: "#2A4064",
-  accentSoft: "#E5EAF1",
-  onAccent: "#FFFFFF",
-  bubbleOwn: "#35507A",
-  bubbleOwnText: "#FFFFFF",
-  bubbleTheirs: "#ECE6DE",
-  bubbleTheirsText: "#221E1A",
-  danger: "#A8322A",
-  dangerPressed: "#8C2922",
-  onDanger: "#FFFFFF",
-  scrim: "rgba(24, 20, 16, 0.4)",
+type Neutrals = Omit<
+  Palette,
+  "accent" | "accentPressed" | "accentSoft" | "onAccent" | "bubbleOwn" | "bubbleOwnText"
+>;
+
+const neutrals: Record<"light" | "dark", Neutrals> = {
+  light: {
+    background: "#F4F1EB",
+    surface: "#FAF8F4",
+    surfaceSunken: "#EAE6DF",
+    text: "#1C1B19",
+    textSecondary: "#5C5852",
+    textTertiary: "#6A655E",
+    hairline: "#DEDAD2",
+    bubbleTheirs: "#E8E4DC",
+    bubbleTheirsText: "#1C1B19",
+    danger: "#9E3029",
+    dangerPressed: "#842721",
+    onDanger: "#FFFFFF",
+    scrim: "rgba(28, 27, 25, 0.4)",
+  },
+  dark: {
+    background: "#131211",
+    surface: "#1B1A18",
+    surfaceSunken: "#252321",
+    text: "#EDE9E3",
+    textSecondary: "#ACA69E",
+    textTertiary: "#8D877F",
+    hairline: "#2D2A27",
+    bubbleTheirs: "#252321",
+    bubbleTheirsText: "#EDE9E3",
+    danger: "#B23A31",
+    dangerPressed: "#C4473D",
+    onDanger: "#FFFFFF",
+    scrim: "rgba(0, 0, 0, 0.55)",
+  },
 };
 
-const dark: Palette = {
-  background: "#161412",
-  surface: "#201D1A",
-  surfaceSunken: "#2A2622",
-  text: "#F1ECE5",
-  textSecondary: "#B8AFA4",
-  textTertiary: "#948B80",
-  hairline: "#332E29",
-  accent: "#9DB4D8",
-  accentPressed: "#B4C6E2",
-  accentSoft: "#222A36",
-  onAccent: "#14181F",
-  bubbleOwn: "#3D5A86",
-  bubbleOwnText: "#FFFFFF",
-  bubbleTheirs: "#2A2622",
-  bubbleTheirsText: "#F1ECE5",
-  danger: "#B23A31",
-  dangerPressed: "#C4473D",
-  onDanger: "#FFFFFF",
-  scrim: "rgba(0, 0, 0, 0.55)",
-};
+// Accent options under review (docs/redesign). "ink" is the default.
+export const accents = {
+  // Blue-black, like fountain-pen ink.
+  ink: {
+    light: { accent: "#1F2E4A", accentPressed: "#16213A", accentSoft: "#E3E5EA", onAccent: "#FFFFFF", bubbleOwn: "#1F2E4A", bubbleOwnText: "#FFFFFF" },
+    dark: { accent: "#AFBDD6", accentPressed: "#C3CEE2", accentSoft: "#232833", onAccent: "#131211", bubbleOwn: "#2E3F60", bubbleOwnText: "#FFFFFF" },
+  },
+  // Deep evergreen.
+  spruce: {
+    light: { accent: "#22433B", accentPressed: "#18332C", accentSoft: "#E1E7E3", onAccent: "#FFFFFF", bubbleOwn: "#22433B", bubbleOwnText: "#FFFFFF" },
+    dark: { accent: "#A3C4B8", accentPressed: "#B8D3C9", accentSoft: "#1F2A26", onAccent: "#131211", bubbleOwn: "#2C5248", bubbleOwnText: "#FFFFFF" },
+  },
+  // Aubergine, the traditional color of half-mourning.
+  plum: {
+    light: { accent: "#46304B", accentPressed: "#36243A", accentSoft: "#E9E2E9", onAccent: "#FFFFFF", bubbleOwn: "#46304B", bubbleOwnText: "#FFFFFF" },
+    dark: { accent: "#CDB5D0", accentPressed: "#DBC8DD", accentSoft: "#2A222B", onAccent: "#131211", bubbleOwn: "#583E5E", bubbleOwnText: "#FFFFFF" },
+  },
+} as const;
 
-export const palettes = { light, dark };
+export type AccentName = keyof typeof accents;
 
-// Soft tints for avatars. Picked from the user's id so a person keeps the same
-// color everywhere. Initials are drawn in `ink` on top of `fill`.
+export function buildPalette(scheme: "light" | "dark", accent: AccentName = "ink"): Palette {
+  return { ...neutrals[scheme], ...accents[accent][scheme] };
+}
+
+export const palettes = { light: buildPalette("light"), dark: buildPalette("dark") };
+
+// Avatars are quiet: close warm neutrals, told apart by initials, not color.
+// Picked from the user's id so a person keeps the same tone everywhere.
 const avatarTints = {
   light: [
-    { fill: "#E3E9F1", ink: "#2F4870" },
-    { fill: "#EAE4DA", ink: "#5A4A33" },
-    { fill: "#E2EBE4", ink: "#2F5A3D" },
-    { fill: "#EFE3E1", ink: "#6E3A33" },
-    { fill: "#E8E3EE", ink: "#4C3D6B" },
-    { fill: "#E6E9E0", ink: "#4A5530" },
+    { fill: "#E6E1D8", ink: "#3D3A35" },
+    { fill: "#E1DDD6", ink: "#3D3A35" },
+    { fill: "#E4E2DC", ink: "#3D3A35" },
+    { fill: "#E8E2DC", ink: "#3D3A35" },
   ],
   dark: [
-    { fill: "#26303F", ink: "#B8C8E2" },
-    { fill: "#342D24", ink: "#DCCBB0" },
-    { fill: "#243128", ink: "#B3D1BB" },
-    { fill: "#382825", ink: "#E2BDB6" },
-    { fill: "#2E2838", ink: "#CBBFE0" },
-    { fill: "#2C3024", ink: "#C9D3B0" },
+    { fill: "#2A2724", ink: "#D8D2C9" },
+    { fill: "#282624", ink: "#D8D2C9" },
+    { fill: "#2B2926", ink: "#D8D2C9" },
+    { fill: "#2C2825", ink: "#D8D2C9" },
   ],
 };
 
@@ -190,9 +207,13 @@ export interface Theme {
   color: Palette;
 }
 
+// Lets the design preview swap accents; the app itself always uses the default.
+export const AccentContext = createContext<AccentName>("ink");
+
 export function useTheme(): Theme {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  return { scheme, color: palettes[scheme] };
+  const accent = useContext(AccentContext);
+  return { scheme, color: buildPalette(scheme, accent) };
 }
 
 function hash(input: string): number {
