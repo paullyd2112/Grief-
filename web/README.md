@@ -18,8 +18,10 @@ npm run lint
 
 Both are optional; see `.env.example`.
 
-- `NEXT_PUBLIC_APP_STORE_URL` — once set, the "Coming soon to iPhone" label
-  becomes a download button.
+- `NEXT_PUBLIC_APP_STORE_URL` — until it's set, Apple's "Download on the App
+  Store" badge shows with a "Coming soon" note and doesn't link anywhere; once
+  set, the badge links to the listing and the note goes away. The badge SVGs in
+  `public/` are Apple's official artwork: don't redraw or recolor them.
 - `NEXT_PUBLIC_SUPPORT_EMAIL` — shown in the footer.
 
 ## Copy

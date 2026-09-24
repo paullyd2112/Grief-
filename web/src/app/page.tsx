@@ -45,31 +45,31 @@ const principles = [
   },
 ];
 
-function GetTheApp() {
-  if (APP_STORE_URL) {
-    return (
-      <div className="cta">
-        <a className="button" href={APP_STORE_URL}>
-          Download for iPhone
-        </a>
-      </div>
-    );
-  }
-  return (
-    <div className="cta">
-      <ComingSoon />
-    </div>
+// Apple's official "Download on the App Store" badge (from Apple's marketing
+// tools; don't redraw or alter it). Black on light pages, white on dark.
+// Until the listing exists it isn't a link and carries a "Coming soon" note;
+// set NEXT_PUBLIC_APP_STORE_URL and it links straight to the App Store.
+function AppStoreBadge({ size = "large" }: { size?: "large" | "small" }) {
+  const badge = (
+    <span className={`badge badge-${size}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="only-light" src="/app-store-badge-black.svg" alt="Download on the App Store" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="only-dark" src="/app-store-badge-white.svg" alt="Download on the App Store" />
+    </span>
   );
+  if (APP_STORE_URL) {
+    return <a href={APP_STORE_URL}>{badge}</a>;
+  }
+  return badge;
 }
 
-// Shaped like an App Store badge but plainly not a link: there is no listing
-// yet. Apple's own badge replaces it once NEXT_PUBLIC_APP_STORE_URL is set.
-function ComingSoon({ compact = false }: { compact?: boolean }) {
+function GetTheApp() {
   return (
-    <span className={compact ? "soon soon-compact" : "soon"}>
-      <span className="soon-small">Coming soon to</span>
-      <span className="soon-large">iPhone</span>
-    </span>
+    <div className="cta">
+      <AppStoreBadge />
+      {!APP_STORE_URL && <span className="cta-note">Coming soon</span>}
+    </div>
   );
 }
 
@@ -88,13 +88,7 @@ export default function Home() {
           <nav className="header-links" aria-label="Page">
             <a href="#how">How it works</a>
             <a href="#crisis">Crisis help</a>
-            {APP_STORE_URL ? (
-              <a className="button button-compact" href={APP_STORE_URL}>
-                Get the app
-              </a>
-            ) : (
-              <ComingSoon compact />
-            )}
+            <AppStoreBadge size="small" />
           </nav>
         </div>
       </header>

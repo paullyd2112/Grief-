@@ -68,8 +68,9 @@ Sections, top to bottom: hero with the app, a short statement, how it works
 to expect (people not AI, adults only, you're in control, peer support not
 therapy), crisis help, and a closing call to action.
 
-Until `NEXT_PUBLIC_APP_STORE_URL` is set, the call to action reads "Coming soon
-to iPhone". Still needed before launch: privacy policy and terms pages, a
+The call to action is Apple's official "Download on the App Store" badge. Until
+`NEXT_PUBLIC_APP_STORE_URL` is set it carries a "Coming soon" note and doesn't
+link anywhere. Still needed before launch: privacy policy and terms pages, a
 favicon and share image, and the domain.
 
 ## Viewing it yourself

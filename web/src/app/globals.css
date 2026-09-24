@@ -234,51 +234,40 @@ img {
   font-size: 0.875rem;
 }
 
-/* Shaped like an App Store badge, in ink. Not a link: there's no listing yet. */
-.soon {
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 3.5rem;
-  padding: 0 1.5rem;
-  border-radius: 0.75rem;
-  background: var(--ink);
-  color: var(--paper);
-  line-height: 1.1;
-  cursor: default;
-  user-select: none;
+/* Apple's badge artwork. Apple's minimum on-screen height is 40px. */
+.badge {
+  display: inline-block;
+  line-height: 0;
 }
 
-.soon-small {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  opacity: 0.8;
+.badge img {
+  width: auto;
+  max-width: none;
 }
 
-.soon-large {
-  font-family: var(--serif);
-  font-size: 1.375rem;
-  font-weight: 500;
-  letter-spacing: -0.01em;
+.badge-large img {
+  height: 3.25rem;
 }
 
-.soon-compact {
-  min-height: 2.25rem;
-  padding: 0 0.875rem;
+.badge-small img {
+  height: 2.5rem;
+}
+
+a:has(> .badge) {
+  display: inline-block;
   border-radius: 0.5rem;
+  transition: opacity 150ms ease;
 }
 
-.soon-compact .soon-small {
-  font-size: 0.5625rem;
-}
-
-.soon-compact .soon-large {
-  font-size: 0.9375rem;
+a:has(> .badge):hover {
+  opacity: 0.85;
 }
 
 .cta-note {
-  font-size: 0.9375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--ink-3);
 }
 
