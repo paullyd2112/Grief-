@@ -35,20 +35,22 @@ Screenshots are in [`home-mockup/`](home-mockup/).
 | File | What it shows |
 | --- | --- |
 | `accent-comparison.png` | The three accent options side by side |
-| `active-*-light.png`, `active-ink-dark.png` | Conversation list |
-| `new-ink-light.png` | New user, onboarding steps |
-| `waiting-ink-light.png` | Waiting for a match |
-| `support-ink-*.png` | Check-in and departure notice above the list (full scroll) |
-| `components-ink-light.png` | The component kit |
+| `active-plum-*.png` | Conversation list (also `active-ink-light`, `active-spruce-light`) |
+| `new-plum-*.png` | New user, onboarding steps |
+| `waiting-plum-*.png` | Waiting for a match |
+| `support-plum-*.png` | Check-in and departure notice above the list (full scroll) |
+| `components-plum-*.png` | The component kit |
 
 The tab bar in the mockup is a stand-in; the real one arrives with the
 navigation step.
 
 ## Decisions to confirm
 
-1. **Accent.** Ink `#1F2E4A` (recommended; the brief's "deep muted blue",
-   pushed toward fountain-pen ink), Spruce `#22433B`, or Plum `#46304B`
-   (aubergine, the traditional half-mourning color).
+1. **Accent: Plum** `#46304B` (aubergine, the traditional half-mourning
+   color). The founder is leaning plum, so it is now the default; ink and
+   spruce stay available in the preview until it's final. In dark mode,
+   buttons use a deep aubergine fill `#5A3F60` with white text, and links use
+   a light plum `#C6AFC9`, so nothing turns pastel.
 2. **Fonts.** Newsreader for headings and names, Inter for body text.
 3. **Check-in card.** One button (988), "Text HELLO to 741741" as a link.
    Copy unchanged.
@@ -59,7 +61,7 @@ navigation step.
 ```bash
 cd mobile
 npx expo start --web
-# open http://localhost:8081/design-preview?state=active&accent=ink
+# open http://localhost:8081/design-preview?state=active&accent=plum
 # states: new, waiting, active, support, components
 # accents: ink, spruce, plum
 ```

@@ -22,10 +22,11 @@ export interface Palette {
   textSecondary: string; // supporting copy
   textTertiary: string; // timestamps, hints, placeholders
   hairline: string; // separators and outlines
-  accent: string; // primary buttons, links, unread mark, own bubbles
-  accentPressed: string;
+  accent: string; // links, unread mark, selected states (as text or a small mark)
+  accentFill: string; // primary button background
+  accentFillPressed: string;
   accentSoft: string; // selected pills
-  onAccent: string; // text and icons on top of accent
+  onAccent: string; // text and icons on top of accentFill
   bubbleOwn: string;
   bubbleOwnText: string;
   bubbleTheirs: string;
@@ -38,7 +39,7 @@ export interface Palette {
 
 type Neutrals = Omit<
   Palette,
-  "accent" | "accentPressed" | "accentSoft" | "onAccent" | "bubbleOwn" | "bubbleOwnText"
+  "accent" | "accentFill" | "accentFillPressed" | "accentSoft" | "onAccent" | "bubbleOwn" | "bubbleOwnText"
 >;
 
 const neutrals: Record<"light" | "dark", Neutrals> = {
@@ -74,28 +75,31 @@ const neutrals: Record<"light" | "dark", Neutrals> = {
   },
 };
 
-// Accent options under review (docs/redesign). "ink" is the default.
+// Accent options under review (docs/redesign). "plum" is the default.
+// In dark mode the accent splits in two: a light tint for links and marks
+// (readable on near-black), and a deep fill for buttons so they stay rich
+// rather than turning pastel.
 export const accents = {
   // Blue-black, like fountain-pen ink.
   ink: {
-    light: { accent: "#1F2E4A", accentPressed: "#16213A", accentSoft: "#E3E5EA", onAccent: "#FFFFFF", bubbleOwn: "#1F2E4A", bubbleOwnText: "#FFFFFF" },
-    dark: { accent: "#AFBDD6", accentPressed: "#C3CEE2", accentSoft: "#232833", onAccent: "#131211", bubbleOwn: "#2E3F60", bubbleOwnText: "#FFFFFF" },
+    light: { accent: "#1F2E4A", accentFill: "#1F2E4A", accentFillPressed: "#16213A", accentSoft: "#E3E5EA", onAccent: "#FFFFFF", bubbleOwn: "#1F2E4A", bubbleOwnText: "#FFFFFF" },
+    dark: { accent: "#AFBDD6", accentFill: "#34476B", accentFillPressed: "#3F5479", accentSoft: "#232833", onAccent: "#FFFFFF", bubbleOwn: "#2E3F60", bubbleOwnText: "#FFFFFF" },
   },
   // Deep evergreen.
   spruce: {
-    light: { accent: "#22433B", accentPressed: "#18332C", accentSoft: "#E1E7E3", onAccent: "#FFFFFF", bubbleOwn: "#22433B", bubbleOwnText: "#FFFFFF" },
-    dark: { accent: "#A3C4B8", accentPressed: "#B8D3C9", accentSoft: "#1F2A26", onAccent: "#131211", bubbleOwn: "#2C5248", bubbleOwnText: "#FFFFFF" },
+    light: { accent: "#22433B", accentFill: "#22433B", accentFillPressed: "#18332C", accentSoft: "#E1E7E3", onAccent: "#FFFFFF", bubbleOwn: "#22433B", bubbleOwnText: "#FFFFFF" },
+    dark: { accent: "#A3C4B8", accentFill: "#2F584D", accentFillPressed: "#3A665A", accentSoft: "#1F2A26", onAccent: "#FFFFFF", bubbleOwn: "#2C5248", bubbleOwnText: "#FFFFFF" },
   },
   // Aubergine, the traditional color of half-mourning.
   plum: {
-    light: { accent: "#46304B", accentPressed: "#36243A", accentSoft: "#E9E2E9", onAccent: "#FFFFFF", bubbleOwn: "#46304B", bubbleOwnText: "#FFFFFF" },
-    dark: { accent: "#CDB5D0", accentPressed: "#DBC8DD", accentSoft: "#2A222B", onAccent: "#131211", bubbleOwn: "#583E5E", bubbleOwnText: "#FFFFFF" },
+    light: { accent: "#46304B", accentFill: "#46304B", accentFillPressed: "#36243A", accentSoft: "#E9E2E9", onAccent: "#FFFFFF", bubbleOwn: "#46304B", bubbleOwnText: "#FFFFFF" },
+    dark: { accent: "#C6AFC9", accentFill: "#5A3F60", accentFillPressed: "#684C6E", accentSoft: "#2A222B", onAccent: "#FFFFFF", bubbleOwn: "#583E5E", bubbleOwnText: "#FFFFFF" },
   },
 } as const;
 
 export type AccentName = keyof typeof accents;
 
-export function buildPalette(scheme: "light" | "dark", accent: AccentName = "ink"): Palette {
+export function buildPalette(scheme: "light" | "dark", accent: AccentName = "plum"): Palette {
   return { ...neutrals[scheme], ...accents[accent][scheme] };
 }
 
@@ -208,7 +212,7 @@ export interface Theme {
 }
 
 // Lets the design preview swap accents; the app itself always uses the default.
-export const AccentContext = createContext<AccentName>("ink");
+export const AccentContext = createContext<AccentName>("plum");
 
 export function useTheme(): Theme {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";

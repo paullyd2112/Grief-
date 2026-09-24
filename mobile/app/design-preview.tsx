@@ -86,7 +86,7 @@ const conversations = [
 
 export default function DesignPreview() {
   const { accent } = useLocalSearchParams<{ accent?: string }>();
-  const accentName: AccentName = accent && accent in accents ? (accent as AccentName) : "ink";
+  const accentName: AccentName = accent && accent in accents ? (accent as AccentName) : "plum";
   return (
     <AccentContext.Provider value={accentName}>
       <PreviewScreen />

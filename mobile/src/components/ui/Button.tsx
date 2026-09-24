@@ -37,7 +37,7 @@ export function Button({
   const isDisabled = disabled || loading;
 
   const palette = {
-    primary: { bg: color.accent, pressed: color.accentPressed, fg: color.onAccent, border: undefined },
+    primary: { bg: color.accentFill, pressed: color.accentFillPressed, fg: color.onAccent, border: undefined },
     secondary: { bg: color.surface, pressed: color.surfaceSunken, fg: color.text, border: color.hairline },
     quiet: { bg: "transparent", pressed: color.surfaceSunken, fg: color.accent, border: undefined },
     destructive: { bg: color.danger, pressed: color.dangerPressed, fg: color.onDanger, border: undefined },
