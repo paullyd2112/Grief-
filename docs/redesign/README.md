@@ -56,6 +56,22 @@ navigation step.
    Copy unchanged.
 4. **Crisis help** as plain text in the header of every screen.
 
+## Landing page
+
+The public website lives in [`web/`](../../web/) (Next.js, deployable to
+Vercel). It uses the same paper-and-ink palette, plum accent and fonts as the
+app. Screenshots are in [`landing/`](landing/): desktop in light and dark, and
+phone.
+
+Sections, top to bottom: hero with the app, a short statement, how it works
+(three numbered steps), the privacy promise quoted from ACCESS_POLICY.md, what
+to expect (people not AI, adults only, you're in control, peer support not
+therapy), crisis help, and a closing call to action.
+
+Until `NEXT_PUBLIC_APP_STORE_URL` is set, the call to action reads "Coming soon
+to iPhone". Still needed before launch: privacy policy and terms pages, a
+favicon and share image, and the domain.
+
 ## Viewing it yourself
 
 ```bash
