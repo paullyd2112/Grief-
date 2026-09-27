@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import Link from "next/link";
+import { Confirm, LegalPage } from "@/components/Legal";
 
 // Mirrors docs/legal/privacy-policy.md word for word. Change the wording there
 // first. While any [CONFIRM] item is open the page says it's a draft and stays
@@ -10,11 +11,6 @@ export const metadata: Metadata = {
   description: "What Ndo collects, why, and what you control.",
   robots: { index: false, follow: false },
 };
-
-// An open decision from the draft, highlighted so it can't slip through.
-function Confirm({ children }: { children: React.ReactNode }) {
-  return <mark className="confirm">[CONFIRM{children ? <>: {children}</> : null}]</mark>;
-}
 
 const collected: { category: string; examples: React.ReactNode; source: React.ReactNode }[] = [
   {
@@ -49,7 +45,7 @@ const collected: { category: string; examples: React.ReactNode; source: React.Re
       "Subscription status and billing history; card details are handled by our payment processor, not stored by Ndo",
     source: (
       <>
-        Payment processor <Confirm>{null}</Confirm>
+        Payment processor <Confirm />
       </>
     ),
   },
@@ -58,7 +54,7 @@ const collected: { category: string; examples: React.ReactNode; source: React.Re
     examples: "Device type, app version, IP address, crash logs, basic in-app activity",
     source: (
       <>
-        Collected automatically <Confirm>analytics tools used, if any</Confirm>
+        Collected automatically <Confirm>CONFIRM: analytics tools used, if any</Confirm>
       </>
     ),
   },
@@ -66,26 +62,22 @@ const collected: { category: string; examples: React.ReactNode; source: React.Re
 
 export default function PrivacyPolicy() {
   return (
-    <>
-      <SiteHeader />
-
-      <main id="main" className="wrap legal">
-        <header className="legal-head">
-          <p className="eyebrow">Legal</p>
-          <h1>Privacy Policy</h1>
-          <p className="legal-date">Last updated September 23, 2026</p>
-          <p className="legal-draft" role="note">
-            Draft for legal review. Items marked [CONFIRM] need a decision or a
-            lawyer&apos;s input before publishing.
-          </p>
-        </header>
-
+    <LegalPage
+      title="Privacy Policy"
+      updated="September 23, 2026"
+      draft={
+        <>
+          Draft for legal review. Items marked [CONFIRM] need a decision or a
+          lawyer&apos;s input before publishing.
+        </>
+      }
+    >
         <section aria-labelledby="s1">
           <h2 id="s1">1. Our commitments</h2>
           <p>
             What you share on Ndo is about some of the hardest moments of your
             life. We treat it that way. This policy explains what{" "}
-            <Confirm>legal entity name</Confirm> (&ldquo;Ndo,&rdquo;
+            <Confirm>CONFIRM: legal entity name</Confirm> (&ldquo;Ndo,&rdquo;
             &ldquo;we&rdquo;) collects, why, and what you control. In plain
             words:
           </p>
@@ -102,7 +94,10 @@ export default function PrivacyPolicy() {
             <li>People, not algorithms, review matches and reports.</li>
             <li>You can delete your account at any time.</li>
           </ul>
-          <p>This policy is part of the Ndo Terms of Service.</p>
+          <p>
+            This policy is part of the Ndo{" "}
+            <Link href="/terms">Terms of Service</Link>.
+          </p>
         </section>
 
         <section aria-labelledby="s2">
@@ -143,7 +138,8 @@ export default function PrivacyPolicy() {
             <li>Match you with other members, based on your intake answers</li>
             <li>Deliver your messages to your matches</li>
             <li>
-              Review reports, enforce the Code of Conduct, and keep members
+              Review reports, enforce the{" "}
+              <Link href="/conduct">Code of Conduct</Link>, and keep members
               safe, including surfacing crisis resources when a message is
               flagged
             </li>
@@ -156,20 +152,20 @@ export default function PrivacyPolicy() {
             <li>
               <strong>Your matches</strong> see what you send them and the
               profile details you choose to share.{" "}
-              <Confirm>which intake details, if any, are shown to a match.</Confirm>
+              <Confirm>CONFIRM: which intake details, if any, are shown to a match.</Confirm>
             </li>
             <li>
               <strong>Ndo staff</strong> may review intake answers to make
               matches, and may review messages only when they are reported or
               flagged, or when needed for safety, legal, or security reasons.{" "}
-              <Confirm>review practice matches this.</Confirm>
+              <Confirm>CONFIRM: review practice matches this.</Confirm>
             </li>
             <li>
               <strong>Service providers</strong> who help us run Ndo (for
               example hosting, email, and payment processing) process data on
               our behalf under contracts that limit their use of it. They may
               not sell it or use it for their own purposes.{" "}
-              <Confirm>list of providers.</Confirm>
+              <Confirm>CONFIRM: list of providers.</Confirm>
             </li>
             <li>
               <strong>Legal and safety.</strong> We may disclose information if
@@ -198,9 +194,9 @@ export default function PrivacyPolicy() {
           <p>
             <strong>Deleting your account.</strong> You can delete your account
             in the app. When you do, we delete or de-identify your account and
-            intake information within <Confirm>e.g., 30 days</Confirm>. Messages
+            intake information within <Confirm>CONFIRM: e.g., 30 days</Confirm>. Messages
             you already sent may remain visible to the person you sent them to,{" "}
-            <Confirm>or are removed from both sides</Confirm>. We may keep
+            <Confirm>CONFIRM: or are removed from both sides</Confirm>. We may keep
             limited records longer where needed for safety or legal reasons,
             such as records of a ban to prevent a removed member from rejoining,
             or where the law requires it.
@@ -209,7 +205,7 @@ export default function PrivacyPolicy() {
             <strong>Security.</strong> We use reasonable technical and
             organizational safeguards, such as encryption in transit and access
             limited to staff who need it, to protect your information.{" "}
-            <Confirm>encryption at rest and other measures in place.</Confirm>{" "}
+            <Confirm>CONFIRM: encryption at rest and other measures in place.</Confirm>{" "}
             No system is perfectly secure, and we can&apos;t guarantee absolute
             security. If a breach affects your personal information, we&apos;ll
             notify you as required by law.
@@ -245,11 +241,11 @@ export default function PrivacyPolicy() {
             To make a request, contact us (Section 6). We&apos;ll verify your
             identity before acting on it and respond within the time the law
             requires.{" "}
-            <mark className="confirm">
-              [CONFIRM with counsel: which state laws apply, including any
+            <Confirm>
+              CONFIRM with counsel: which state laws apply, including any
               health-data laws such as Washington&apos;s My Health My Data Act,
-              given the nature of grief-related information.]
-            </mark>
+              given the nature of grief-related information.
+            </Confirm>
           </p>
         </section>
 
@@ -267,12 +263,9 @@ export default function PrivacyPolicy() {
           </p>
           <p>
             <strong>Contact.</strong> Privacy questions or requests:{" "}
-            <Confirm>privacy contact email and mailing address</Confirm>.
+            <Confirm>CONFIRM: privacy contact email and mailing address</Confirm>.
           </p>
         </section>
-      </main>
-
-      <SiteFooter />
-    </>
+    </LegalPage>
   );
 }

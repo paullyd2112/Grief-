@@ -3,8 +3,13 @@
 | Document | File | Website page | Status |
 | --- | --- | --- | --- |
 | Privacy Policy | [privacy-policy.md](privacy-policy.md) | `/privacy` | Draft, waiting on the [CONFIRM] items and legal review |
-| Terms of Service | Not yet in the repo | Not built | Waiting for the text |
-| Code of Conduct | Not yet in the repo (the app shows a summary in `mobile/app/(app)/guidelines.tsx`) | Not built | Waiting for the full text |
+| Terms of Service | [terms-of-service.md](terms-of-service.md) | `/terms` | Draft, waiting on the [CONFIRM] items and legal review |
+| Code of Conduct | [code-of-conduct.md](code-of-conduct.md) | `/conduct` | Two open items (support contact, crisis-line countries) |
+
+The app shows a short summary of the Code of Conduct in
+`mobile/app/(app)/guidelines.tsx`, with an optional link to the full text
+(`EXPO_PUBLIC_CODE_OF_CONDUCT_URL`). Once the domain is live, point that at
+`/conduct`.
 
 The `.md` files hold the founder's wording word for word. Change the wording
 there first, then mirror it on the website. While a document still has
@@ -76,3 +81,67 @@ counsel. None of them has been applied to the policy text.
 - Legal entity name.
 - Privacy contact email and mailing address.
 - Which state laws apply, including Washington's My Health My Data Act.
+
+## Terms of Service and Code of Conduct: review notes
+
+Same approach as above: the drafts compared with the code,
+[ACCESS_POLICY.md](../ACCESS_POLICY.md) and [DECISIONS.md](../DECISIONS.md).
+Nothing has been changed in the documents' text.
+
+### Where the drafts disagree with the app or with each other
+
+1. **Automatic crisis detection.** Terms 2.2 says Ndo "may show crisis
+   resources when certain messages are flagged". The Code of Conduct says the
+   app "surfaces crisis-line resources … directly in that conversation" when a
+   member expresses suicidal thoughts, and that staff "review flagged crisis
+   messages". DECISIONS.md D17 decided the opposite: messages are not scanned,
+   and a "Get help" link sits in every conversation header and on the home
+   screen. What does exist: a member can report a message, or use "I'm worried
+   about them", and staff can then send a check-in. Suggested Code of Conduct
+   wording: "Crisis-line resources are one tap away in every conversation
+   (Get help). If you're worried about the person you're talking to, use
+   'I'm worried about them' or report the message; a person at Ndo reviews it
+   and can check in on them."
+2. **Off-platform conduct: the two documents contradict each other.** Terms
+   3.5 and 4.5 say Ndo may act on conduct off the app and members can report
+   it. The Code of Conduct's scope says it "does not extend to what members
+   choose to do off-platform". DECISIONS.md D14 sides with the Terms (ended
+   conversations stay listed so off-platform conduct can be reported).
+   Suggest adding to the Code of Conduct scope: "…but you can still report
+   someone you were matched with for how they treated you off the app, and we
+   may act on it."
+3. **Appeals reviewer.** The Code of Conduct promises appeals are "reviewed by
+   someone who wasn't part of the original decision". DECISIONS.md D16:
+   appeals are reviewed by Paul, there is no second reviewer during the beta,
+   "so the Code of Conduct should not promise one." Suggest: "Appeals are
+   reviewed by a person at Ndo" until there is a second reviewer.
+4. **Temporary suspensions.** The enforcement table lists "Temporary
+   suspension". D16 notes timed suspensions and a distinct permanent-ban
+   state aren't built yet: today a suspension lasts until an operator lifts
+   it. Either build timed suspensions before launch or word the table as
+   "Suspension".
+5. **Report outcomes.** The Code of Conduct says members get "where
+   appropriate, an outcome once it's resolved". The app confirms receipt but
+   has no way to tell the reporter the outcome. Either drop the promise or add
+   the feature.
+6. **"Report button on the … profile".** There are no member profile pages
+   to report from; reports are made on a message, and block works from the
+   conversation. Suggest "on the message in question".
+7. **Login details (Terms 1.3).** Sign-in is a one-time code sent by email,
+   so there's no password to keep secure. "Keep access to your email secure"
+   fits better.
+
+### Suggested answers to open items
+
+| Item | What the app does today |
+| --- | --- |
+| Terms 6.9 / Code of Conduct contact | Use the same address as `NEXT_PUBLIC_SUPPORT_EMAIL` and `EXPO_PUBLIC_SUPPORT_EMAIL` (the app already shows it to suspended and warned members for appeals). |
+| Crisis-line countries | The app lists US numbers (988, Crisis Text Line) plus a link to IASP's worldwide directory, on the crisis screen and the website. |
+| Payment terms (Terms 5.3) | No payments yet. Apple requires in-app purchase for digital subscriptions sold in an iOS app, so auto-renewal and cancellation terms will follow Apple's rules. |
+
+### Still needs the founder or counsel
+
+- Legal entity name (all three documents).
+- Governing law, dispute resolution, and the California Civil Code 1542
+  waiver.
+- Limitation of liability amount.

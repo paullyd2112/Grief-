@@ -69,6 +69,8 @@ export function SiteFooter() {
         <Link href="/#how">How it works</Link>
         <Link href="/#crisis">Crisis help</Link>
         <Link href="/privacy">Privacy</Link>
+        <Link href="/terms">Terms</Link>
+        <Link href="/conduct">Code of Conduct</Link>
         {SUPPORT_EMAIL && <a href={`mailto:${SUPPORT_EMAIL}`}>Contact</a>}
       </nav>
       <p className="footer-legal">© {new Date().getFullYear()} Ndo</p>
