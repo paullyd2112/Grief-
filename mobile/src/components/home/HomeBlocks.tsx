@@ -52,7 +52,7 @@ export function ConversationRow({
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
           <Text
-            variant="title3"
+            variant="bodyMedium"
             numberOfLines={1}
             style={[styles.rowName, unread && styles.rowNameUnread]}
           >
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rowNameUnread: {
-    fontFamily: fonts.serifSemibold,
+    fontFamily: fonts.sansSemibold,
   },
   unreadDot: {
     width: 8,

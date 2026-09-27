@@ -125,27 +125,28 @@ const avatarTints = {
 // ---------------------------------------------------------------------------
 // Type
 //
-// Newsreader (serif) for headings, Inter (sans) for everything people read at
-// length. Sizes follow the iOS text styles so Dynamic Type feels native; Text
-// scales with the system setting by default.
+// Instrument Serif for the wordmark, titles and avatar initials; Figtree for
+// everything people read, names included (Instrument is too fine at list
+// sizes). Instrument has a single weight, so there is no bold serif. It also
+// runs small and narrow, so the serif sizes sit a step above the iOS text
+// styles. Text scales with the system setting (Dynamic Type) by default.
 // ---------------------------------------------------------------------------
 
 export const fonts = {
-  serif: "Newsreader_500Medium",
-  serifSemibold: "Newsreader_600SemiBold",
-  serifItalic: "Newsreader_400Regular_Italic",
-  sans: "Inter_400Regular",
-  sansMedium: "Inter_500Medium",
-  sansSemibold: "Inter_600SemiBold",
+  serif: "InstrumentSerif_400Regular",
+  serifItalic: "InstrumentSerif_400Regular_Italic",
+  sans: "Figtree_400Regular",
+  sansMedium: "Figtree_500Medium",
+  sansSemibold: "Figtree_600SemiBold",
 } as const;
 
 export const type = {
   // Serif
-  display: { fontFamily: fonts.serif, fontSize: 44, lineHeight: 50, letterSpacing: -0.5 },
-  largeTitle: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 40, letterSpacing: -0.3 },
-  title1: { fontFamily: fonts.serif, fontSize: 28, lineHeight: 34, letterSpacing: -0.2 },
-  title2: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 28 },
-  title3: { fontFamily: fonts.serif, fontSize: 20, lineHeight: 26 },
+  display: { fontFamily: fonts.serif, fontSize: 52, lineHeight: 56, letterSpacing: -0.5 },
+  largeTitle: { fontFamily: fonts.serif, fontSize: 38, lineHeight: 44, letterSpacing: -0.3 },
+  title1: { fontFamily: fonts.serif, fontSize: 31, lineHeight: 36, letterSpacing: -0.2 },
+  title2: { fontFamily: fonts.serif, fontSize: 25, lineHeight: 30 },
+  title3: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 27 },
   // Sans
   headline: { fontFamily: fonts.sansSemibold, fontSize: 17, lineHeight: 24 },
   body: { fontFamily: fonts.sans, fontSize: 17, lineHeight: 25 },

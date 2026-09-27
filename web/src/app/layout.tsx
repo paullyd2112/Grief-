@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Newsreader } from "next/font/google";
+import { Figtree, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
-// Same pairing as the app: Newsreader for headings, Inter for reading.
-const newsreader = Newsreader({
+// Same pairing as the app: Instrument Serif for the wordmark and headings,
+// Figtree for reading. Instrument Serif has a single weight.
+const instrumentSerif = Instrument_Serif({
   variable: "--font-serif",
   subsets: ["latin"],
+  weight: "400",
   style: ["normal", "italic"],
 });
 
-const inter = Inter({
+const figtree = Figtree({
   variable: "--font-sans",
   subsets: ["latin"],
 });
@@ -33,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${newsreader.variable} ${inter.variable}`}>
+    <html lang="en" className={`${instrumentSerif.variable} ${figtree.variable}`}>
       <body>{children}</body>
     </html>
   );

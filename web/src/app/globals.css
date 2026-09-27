@@ -1,5 +1,5 @@
 /* Ndo landing page. Tokens mirror mobile/src/theme.ts: paper and ink, one
-   plum accent, Newsreader for headings and Inter for reading. */
+   plum accent, Instrument Serif for headings and Figtree for reading. */
 
 :root {
   --paper: #f4f1eb;
@@ -74,7 +74,7 @@ h1,
 h2,
 h3 {
   font-family: var(--serif);
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
   text-wrap: balance;
 }
@@ -142,7 +142,7 @@ img {
 .wordmark {
   font-family: var(--serif);
   font-size: 1.75rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   text-decoration: none;
 }
@@ -812,7 +812,8 @@ a:has(> .badge):hover {
   line-height: 1.2;
 }
 
-.legal ul {
+.legal ul,
+.legal ol {
   margin: 0;
   padding-left: 1.25rem;
   display: grid;

@@ -195,9 +195,9 @@ function ComponentKit() {
         <Text variant="display">Ndo</Text>
         <Text variant="title1">Title one, in serif</Text>
         <Text variant="title3">Title three, in serif</Text>
-        <Text variant="headline">Headline in Inter</Text>
+        <Text variant="headline">Headline in Figtree</Text>
         <Text variant="body">
-          Body text is Inter at 17pt, set loosely so long messages stay easy to read.
+          Body text is Figtree at 17pt, set loosely so long messages stay easy to read.
         </Text>
         <Text variant="footnote" color="textTertiary">
           Footnote for timestamps and hints

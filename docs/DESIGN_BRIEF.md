@@ -30,8 +30,9 @@ screens.
   deep muted blue, replacing the stock `#3B82F6`. Own chat bubbles in the
   accent, theirs in warm grey. Red only for "Yes, right now". Plan for dark
   mode.
-- **Type:** a serif for headings (e.g. Newsreader, Fraunces or Source Serif) and
-  a clean sans for body text. Define a clear size scale.
+- **Type:** a serif for headings and a clean sans for body text. Define a
+  clear size scale. (Decided: Instrument Serif and Figtree; see
+  `docs/redesign/README.md`.)
 - **Spacing and shape:** a 4pt grid and consistent corner radii (cards,
   bubbles, pills).
 - **Icons:** one icon set (SF Symbols via `expo-symbols`). No emoji. Replace the
