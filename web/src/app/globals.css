@@ -164,7 +164,7 @@ img {
 }
 
 /* On narrow phones keep just crisis help and the app badge. */
-.header-links > a[href="#how"] {
+.header-links > .header-how {
   display: none;
 }
 
@@ -174,7 +174,7 @@ img {
     font-size: 0.9375rem;
   }
 
-  .header-links > a[href="#how"] {
+  .header-links > .header-how {
     display: inline;
   }
 }
@@ -766,4 +766,109 @@ a:has(> .badge):hover {
 
 .footer-legal {
   font-size: 0.8125rem;
+}
+
+/* --- Legal pages (/privacy) --------------------------------------------- */
+
+.legal {
+  max-width: calc(44rem + 2 * var(--gutter));
+  padding-block: clamp(3rem, 8vw, 5rem) var(--section);
+  display: grid;
+  gap: 3rem;
+}
+
+.legal-head {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.legal-head h1 {
+  font-size: clamp(2.5rem, 6vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+
+.legal-date {
+  color: var(--ink-3);
+  font-size: 0.9375rem;
+}
+
+.legal-draft {
+  margin-top: 0.5rem;
+  padding: 0.875rem 1.125rem;
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+}
+
+.legal section {
+  display: grid;
+  gap: 1rem;
+}
+
+.legal h2 {
+  font-size: clamp(1.5rem, 3vw, 1.875rem);
+  line-height: 1.2;
+}
+
+.legal ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.legal li::marker {
+  color: var(--ink-3);
+}
+
+.legal strong {
+  font-weight: 600;
+}
+
+.legal-table {
+  overflow-x: auto;
+}
+
+.legal table {
+  width: 100%;
+  min-width: 36rem;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.legal th,
+.legal td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.875rem 1rem 0.875rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.legal thead th {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.legal tbody th {
+  font-weight: 600;
+  width: 28%;
+}
+
+.legal td {
+  color: var(--ink-2);
+}
+
+/* Open [CONFIRM] items in a draft: hard to miss, easy to find. */
+.confirm {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--ink);
+  padding: 0.05em 0.3em;
+  border-radius: 4px;
+  font-size: 0.92em;
 }

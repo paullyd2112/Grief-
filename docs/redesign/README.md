@@ -70,7 +70,8 @@ therapy), crisis help, and a closing call to action.
 
 The call to action is Apple's official "Download on the App Store" badge. Until
 `NEXT_PUBLIC_APP_STORE_URL` is set it carries a "Coming soon" note and doesn't
-link anywhere. Still needed before launch: privacy policy and terms pages, a
+link anywhere. The privacy policy is at `/privacy` as a draft (see
+[docs/legal/](../legal/)). Still needed before launch: the terms page, a
 favicon and share image, and the domain.
 
 ## Viewing it yourself
