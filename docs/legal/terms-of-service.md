@@ -6,7 +6,7 @@ Sep 23, 2026 · @Paul
 > lawyer's input before publishing.
 
 Transcribed word for word from `Ndo_Terms_of_Service.pdf` (the founder's
-draft). This file is the source of truth for the website's `/terms` page
+draft), with the founder's Sep 28 decisions applied. This file is the source of truth for the website's `/terms` page
 (`web/src/app/terms/page.tsx`): change the wording here first, then mirror it
 there. Review notes are in [README.md](README.md).
 
@@ -41,8 +41,8 @@ psychological, or professional advice.
 **2.2 Not a crisis service.** Ndo does not provide emergency or crisis support
 and does not monitor conversations in real time. If you are in crisis or
 thinking about harming yourself, call or text 988 (in the US), contact your
-local emergency number, or go to the nearest emergency room. Ndo may show
-crisis resources when certain messages are flagged, but you should never rely
+local emergency number, or go to the nearest emergency room. Crisis
+resources are always one tap away in the app, but you should never rely
 on Ndo, or on another member, in an emergency.
 
 **2.3 No guarantees about members.** Members are individuals, not Ndo employees

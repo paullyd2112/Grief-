@@ -16,6 +16,34 @@ there first, then mirror it on the website. While a document still has
 [CONFIRM] items, its web page shows a draft notice, highlights each open item,
 and tells search engines not to index it.
 
+## Founder decisions, Sep 28
+
+Applied to all three documents and their web pages:
+
+- **No message scanning.** Every "flagged message" and automatic crisis
+  detection line is replaced. Crisis help is one tap away in the app, and
+  members tell Ndo through "I'm worried about them" or a report. (Privacy
+  Policy section 3, Terms 2.2, Code of Conduct "Safety and crisis
+  situations".)
+- **One reviewer.** Appeals are "reviewed by a person at Ndo"; the promise of
+  a second reviewer is gone.
+- **No timed suspensions.** Suspensions and bans are decided case by case, so
+  the enforcement table says "Suspension" instead of "Temporary suspension".
+- **"Keep your login details secure"** stays in the Terms.
+
+Still open:
+
+- **Passwords.** The founder wants sign-in by email code and by password. The
+  app only has email codes today, so the Privacy Policy's "password" describes
+  a feature that isn't built yet.
+- **Off-platform conduct.** The Code of Conduct's scope still says it doesn't
+  extend off-platform, while Terms 3.5 and 4.5 say Ndo may act on it.
+- **Staff access for "safety, legal, or security reasons"** (Privacy Policy
+  section 3) is still broader than the database allows.
+- Report outcomes and the "profile" wording (items 5 and 6 below).
+
+The notes below are the original review, kept for reference.
+
 ## Privacy Policy: review notes
 
 These notes compare the Sep 23 draft with the code and

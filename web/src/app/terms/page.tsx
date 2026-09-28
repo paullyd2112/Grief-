@@ -64,7 +64,7 @@ const sections: { n: number; title: string; clauses: Clause[] }[] = [
       {
         n: "2.2",
         title: "Not a crisis service",
-        body: "Ndo does not provide emergency or crisis support and does not monitor conversations in real time. If you are in crisis or thinking about harming yourself, call or text 988 (in the US), contact your local emergency number, or go to the nearest emergency room. Ndo may show crisis resources when certain messages are flagged, but you should never rely on Ndo, or on another member, in an emergency.",
+        body: "Ndo does not provide emergency or crisis support and does not monitor conversations in real time. If you are in crisis or thinking about harming yourself, call or text 988 (in the US), contact your local emergency number, or go to the nearest emergency room. Crisis resources are always one tap away in the app, but you should never rely on Ndo, or on another member, in an emergency.",
       },
       {
         n: "2.3",

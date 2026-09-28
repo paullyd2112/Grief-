@@ -5,7 +5,8 @@ Sep 23, 2026 · @Paul
 > **Draft for legal review.** Items marked [CONFIRM] need a decision or a
 > lawyer's input before publishing.
 
-Transcribed word for word from `Ndo_Privacy_Policy.pdf` (the founder's draft).
+Transcribed word for word from `Ndo_Privacy_Policy.pdf` (the founder's draft),
+with the founder's Sep 28 decisions applied (see [README.md](README.md)).
 This file is the source of truth for the website's `/privacy` page
 (`web/src/app/privacy/page.tsx`): change the wording here first, then mirror it
 there. Suggested answers to the [CONFIRM] items, and places where this draft
@@ -51,7 +52,7 @@ We use your information to:
 - Match you with other members, based on your intake answers
 - Deliver your messages to your matches
 - Review reports, enforce the Code of Conduct, and keep members safe, including
-  surfacing crisis resources when a message is flagged
+  keeping crisis resources one tap away in the app
 - Respond to feedback and support requests and improve the app
 - Handle billing once paid plans begin
 - Meet legal obligations
@@ -61,7 +62,7 @@ Who can see it:
 - **Your matches** see what you send them and the profile details you choose to
   share. [CONFIRM: which intake details, if any, are shown to a match.]
 - **Ndo staff** may review intake answers to make matches, and may review
-  messages only when they are reported or flagged, or when needed for safety,
+  messages only when they are reported, or when needed for safety,
   legal, or security reasons. [CONFIRM: review practice matches this.]
 - **Service providers** who help us run Ndo (for example hosting, email, and
   payment processing) process data on our behalf under contracts that limit

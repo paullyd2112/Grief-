@@ -140,8 +140,8 @@ export default function PrivacyPolicy() {
             <li>
               Review reports, enforce the{" "}
               <Link href="/conduct">Code of Conduct</Link>, and keep members
-              safe, including surfacing crisis resources when a message is
-              flagged
+              safe, including keeping crisis resources one tap away in the
+              app
             </li>
             <li>Respond to feedback and support requests and improve the app</li>
             <li>Handle billing once paid plans begin</li>
@@ -156,8 +156,8 @@ export default function PrivacyPolicy() {
             </li>
             <li>
               <strong>Ndo staff</strong> may review intake answers to make
-              matches, and may review messages only when they are reported or
-              flagged, or when needed for safety, legal, or security reasons.{" "}
+              matches, and may review messages only when they are reported,
+              or when needed for safety, legal, or security reasons.{" "}
               <Confirm>CONFIRM: review practice matches this.</Confirm>
             </li>
             <li>

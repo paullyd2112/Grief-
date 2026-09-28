@@ -63,10 +63,10 @@ const unacceptable = [
 
 const safety = [
   "Ndo is peer support, not a crisis service, and no member — including Ndo staff — is expected to act as one.",
-  "If a member expresses suicidal thoughts, intent to self-harm, or that they are in immediate danger, the app surfaces crisis-line resources (e.g., 988 in the US) directly in that conversation.",
+  "Crisis-line resources (e.g., 988 in the US) are one tap away in every conversation, under Get help. Ndo doesn’t scan conversations, so we only know someone is struggling if someone tells us.",
   "Members are never asked or expected to talk someone out of a crisis themselves.",
-  "Match partners can flag a concerning message, and the correct next step is to point the person toward crisis resources and use the in-app report/flag tool.",
-  "Ndo staff or moderators (not AI, per current product limits) review flagged crisis messages and can check in on the affected member.",
+  "If you’re worried about your match, point them toward crisis resources, then let Ndo know with “I’m worried about them” or the in-app report tool.",
+  "A person at Ndo (not AI) reviews every concern and report, and can check in on the affected member.",
   "Ndo surfaces external mental health resources and provider directories. Listing a resource is not a vetting or endorsement of it — members use their own judgment when reaching out to any listed provider.",
 ];
 
@@ -86,7 +86,7 @@ const reporting = [
 
 const enforcement: [string, string][] = [
   ["First-time, lower-severity (e.g., unsolicited advice, minor tone issue)", "Warning + brief guidance"],
-  ["Repeated lower-severity, or single moderate violation (e.g., solicitation, sharing a match’s info)", "Temporary suspension"],
+  ["Repeated lower-severity, or single moderate violation (e.g., solicitation, sharing a match’s info)", "Suspension"],
   ["Severe or repeated (e.g., harassment, threats, sexual advances, impersonating a professional)", "Permanent ban"],
   ["Immediate danger to self or others", "Crisis resources surfaced immediately; account action follows separately"],
 ];
@@ -199,7 +199,7 @@ export default function CodeOfConduct() {
         </div>
         <p>
           Members can appeal a decision by contacting Ndo support; appeals are
-          reviewed by someone who wasn&apos;t part of the original decision.
+          reviewed by a person at Ndo.
         </p>
       </section>
 
