@@ -14,10 +14,13 @@ export function VoiceBubble({
   voiceMemoId,
   isOwn,
   timestamp,
+  onLongPress,
 }: {
   voiceMemoId: string;
   isOwn: boolean;
   timestamp: string;
+  // Unsend (your own) or report (theirs); handled by the conversation screen.
+  onLongPress?: () => void;
 }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [storedDurationMs, setStoredDurationMs] = useState(0);
@@ -68,7 +71,7 @@ export function VoiceBubble({
     <View
       style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleTheirs]}
     >
-      <TouchableOpacity onPress={handlePress} style={styles.row}>
+      <TouchableOpacity onPress={handlePress} onLongPress={onLongPress} style={styles.row}>
         <Text style={[styles.playIcon, isOwn ? styles.textOwn : styles.textTheirs]}>
           {isPlaying ? "⏸" : "▶"}
         </Text>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,13 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../src/hooks/useAuth";
 import { useProfile } from "../../src/hooks/useProfile";
 import { supabase } from "../../src/lib/supabase";
+import { getShowRightAway, setShowRightAway } from "../../src/lib/media";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
@@ -19,6 +21,11 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [nameDraft, setNameDraft] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showMedia, setShowMedia] = useState(false);
+
+  useEffect(() => {
+    getShowRightAway().then(setShowMedia);
+  }, []);
 
   const saveName = async () => {
     if (!user || nameDraft === null) return;
@@ -173,6 +180,22 @@ export default function SettingsScreen() {
         <Text style={styles.linkText}>Your data</Text>
         <Text style={styles.linkArrow}>›</Text>
       </TouchableOpacity>
+
+      <View style={styles.linkRow}>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Text style={styles.linkText}>Show photos and videos right away</Text>
+          <Text style={styles.linkSubtext}>
+            Off: they open when you tap them, so you can choose when you&apos;re ready.
+          </Text>
+        </View>
+        <Switch
+          value={showMedia}
+          onValueChange={(value) => {
+            setShowMedia(value);
+            setShowRightAway(value);
+          }}
+        />
+      </View>
 
       <TouchableOpacity
         style={styles.linkRow}

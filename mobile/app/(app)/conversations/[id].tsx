@@ -20,6 +20,21 @@ import { useVoiceMemo } from "../../../src/hooks/useVoiceMemo";
 import { containsContactInfo } from "../../../src/lib/contact-detect";
 import { sendErrorMessage } from "../../../src/lib/send-errors";
 import { VoiceBubble } from "../../../src/components/VoiceBubble";
+import { MediaBubble } from "../../../src/components/MediaBubble";
+import { MediaComposer } from "../../../src/components/MediaComposer";
+import {
+  ATTACHMENTS_BUCKET,
+  MAX_ITEMS_PER_MESSAGE,
+  MediaError,
+  copyForReport,
+  getExplainerSeen,
+  getShowRightAway,
+  markExplainerSeen,
+  pickMedia,
+  sendMedia,
+  unsendMessage,
+  type PickedMedia,
+} from "../../../src/lib/media";
 import { WorriedSheet } from "../../../src/components/WorriedSheet";
 import { supabase } from "../../../src/lib/supabase";
 import type { Message } from "../../../src/lib/types";
@@ -34,16 +49,49 @@ function formatRecordingTime(ms: number): string {
 function MessageBubble({
   message,
   isOwn,
+  partnerName,
+  showRightAway,
+  showExplainer,
+  onRevealed,
+  onLongPress,
 }: {
   message: Message;
   isOwn: boolean;
+  partnerName: string;
+  showRightAway: boolean;
+  showExplainer: boolean;
+  onRevealed: () => void;
+  onLongPress: () => void;
 }) {
+  if (message.kind === "media") {
+    return (
+      <MediaBubble
+        message={message}
+        isOwn={isOwn}
+        partnerName={partnerName}
+        showRightAway={showRightAway}
+        showExplainer={showExplainer}
+        onRevealed={onRevealed}
+        onLongPress={onLongPress}
+      />
+    );
+  }
+
+  if (message.kind === "voice" && message.unsent_at) {
+    return (
+      <Text style={[styles.unsentText, isOwn ? styles.unsentOwn : styles.unsentTheirs]}>
+        {isOwn ? "You unsent a voice memo" : `${partnerName} unsent a voice memo`}
+      </Text>
+    );
+  }
+
   if (message.kind === "voice" && message.voice_memo_id) {
     return (
       <VoiceBubble
         voiceMemoId={message.voice_memo_id}
         isOwn={isOwn}
         timestamp={message.created_at}
+        onLongPress={onLongPress}
       />
     );
   }
@@ -94,8 +142,8 @@ function ReportModal({
           <Text style={styles.modalTitle}>Report this person</Text>
           <Text style={styles.modalSubtitle}>
             {ended
-              ? "This will block them. Your recent messages will be saved as a snapshot for review. You can also report something that happened outside the app."
-              : "This will block them and end the conversation. Your recent messages will be saved as a snapshot for review."}
+              ? "This will block them. Your recent messages, including photos and videos, will be saved as a snapshot for review. You can also report something that happened outside the app."
+              : "This will block them and end the conversation. Your recent messages, including photos and videos, will be saved as a snapshot for review."}
           </Text>
 
           <TextInput
@@ -132,7 +180,7 @@ export default function ConversationScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { info, loading: convLoading } = useConversation(id, user?.id);
-  const { messages, loading: msgsLoading, sendMessage } = useMessages(id);
+  const { messages, loading: msgsLoading, sendMessage, markUnsent } = useMessages(id);
   const voice = useVoiceMemo(id);
 
   const [text, setText] = useState("");
@@ -144,6 +192,27 @@ export default function ConversationScreen() {
     null
   );
   const inputRef = useRef<TextInput>(null);
+
+  // Photos and videos
+  const [picked, setPicked] = useState<PickedMedia[]>([]);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [batch, setBatch] = useState(0);
+  const [mediaSending, setMediaSending] = useState(false);
+  const [mediaProgress, setMediaProgress] = useState<{ done: number; total: number } | null>(null);
+  const [showRightAway, setShowRightAway] = useState(false);
+  const [explainerSeen, setExplainerSeen] = useState(true);
+
+  useEffect(() => {
+    getShowRightAway().then(setShowRightAway);
+    getExplainerSeen().then(setExplainerSeen);
+  }, []);
+
+  // Photos and videos unlock once both people have said something. The
+  // database enforces it; this just explains it before the picker opens.
+  const mediaUnlocked =
+    !!user &&
+    messages.some((m) => m.sender_id === user.id) &&
+    messages.some((m) => m.sender_id !== user.id);
 
   const isEnded = info?.matchEnded || info?.conversationDeleted;
 
@@ -186,6 +255,88 @@ export default function ConversationScreen() {
     }
   }, [contactWarningText, user, sending, sendMessage]);
 
+  const handleAttach = useCallback(async () => {
+    if (!mediaUnlocked) {
+      Alert.alert(
+        "Not yet",
+        "Photos and videos unlock once you've both said hello. Send a message first, and once they reply you can share photos."
+      );
+      return;
+    }
+    const items = await pickMedia(MAX_ITEMS_PER_MESSAGE);
+    if (!items || items.length === 0) return;
+    setPicked(items);
+    setBatch((b) => b + 1);
+    setComposerOpen(true);
+  }, [mediaUnlocked]);
+
+  const handleSendMedia = useCallback(
+    async (caption: string, allowSave: boolean) => {
+      if (!id || !user || mediaSending) return;
+      setMediaSending(true);
+      setMediaProgress({ done: 0, total: picked.length });
+      try {
+        await sendMedia({
+          conversationId: id,
+          senderId: user.id,
+          items: picked,
+          caption,
+          allowSave,
+          onProgress: (done, total) => setMediaProgress({ done, total }),
+        });
+        setComposerOpen(false);
+        setPicked([]);
+      } catch (e) {
+        Alert.alert(
+          "Couldn't send",
+          e instanceof MediaError ? e.message : sendErrorMessage(e)
+        );
+      } finally {
+        setMediaSending(false);
+        setMediaProgress(null);
+      }
+    },
+    [id, user, picked, mediaSending]
+  );
+
+  // Long-press: unsend your own photos, videos and voice memos; report theirs.
+  const handleMessageLongPress = useCallback(
+    (message: Message) => {
+      if (!user || message.unsent_at) return;
+      if (message.sender_id === user.id) {
+        if (message.kind === "text") return;
+        const what = message.kind === "voice" ? "voice memo" : "photo or video";
+        Alert.alert(`Unsend this ${what}?`, "It will be removed for both of you.", [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Unsend",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await unsendMessage(message.id);
+                markUnsent(message.id);
+              } catch (e) {
+                Alert.alert("Couldn't unsend", sendErrorMessage(e));
+              }
+            },
+          },
+        ]);
+        return;
+      }
+      Alert.alert("Report this?", "A person at Ndo will review it. You won't have to open it.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Report", style: "destructive", onPress: () => setShowReport(true) },
+      ]);
+    },
+    [user, markUnsent]
+  );
+
+  const handleExplainerSeen = useCallback(() => {
+    if (explainerSeen) return;
+    setExplainerSeen(true);
+    markExplainerSeen();
+  }, [explainerSeen]);
+
   const handleLeave = useCallback(() => {
     if (!id) return;
     Alert.alert(
@@ -211,18 +362,27 @@ export default function ConversationScreen() {
       setReporting(true);
 
       const recentMessages = messages.slice(0, 20).reverse();
-      const snapshot = {
-        messages: recentMessages.map((m) => ({
-          id: m.id,
-          sender_id: m.sender_id,
-          kind: m.kind,
-          body: m.body,
-          created_at: m.created_at,
-        })),
-        reported_at: new Date().toISOString(),
-      };
 
       try {
+        // Photos and videos are copied to a folder only operators can read,
+        // so a report shows what was sent even if it's later unsent.
+        const media = await copyForReport(
+          user.id,
+          recentMessages.filter((m) => m.kind === "media" && !m.unsent_at).map((m) => m.id)
+        );
+        const snapshot = {
+          messages: recentMessages.map((m) => ({
+            id: m.id,
+            sender_id: m.sender_id,
+            kind: m.kind,
+            body: m.body,
+            created_at: m.created_at,
+            unsent_at: m.unsent_at,
+            attachments: media.get(m.id) ?? undefined,
+          })),
+          reported_at: new Date().toISOString(),
+        };
+
         const { error } = await supabase.rpc("report_message", {
           conv: id,
           target_user: info.partnerId,
@@ -278,7 +438,7 @@ export default function ConversationScreen() {
     if (!id) return;
     Alert.alert(
       "Delete conversation?",
-      "This permanently removes all messages and voice memos for both of you. This can't be undone.",
+      "This permanently removes all messages, photos, videos and voice memos for both of you. This can't be undone.",
       [
         { text: "Keep", style: "cancel" },
         {
@@ -287,10 +447,12 @@ export default function ConversationScreen() {
           onPress: async () => {
             // Audio must go first: once the conversation is deleted, storage
             // rules stop letting either participant see the files.
-            const bucket = supabase.storage.from("voice-memos");
-            const { data: files } = await bucket.list(id, { limit: 1000 });
-            if (files?.length) {
-              await bucket.remove(files.map((f) => `${id}/${f.name}`));
+            for (const name of ["voice-memos", ATTACHMENTS_BUCKET]) {
+              const bucket = supabase.storage.from(name);
+              const { data: files } = await bucket.list(id, { limit: 1000 });
+              if (files?.length) {
+                await bucket.remove(files.map((f) => `${id}/${f.name}`));
+              }
             }
             await supabase.rpc("delete_conversation", { conv: id });
             router.replace("/(app)/");
@@ -378,7 +540,15 @@ export default function ConversationScreen() {
           inverted
           contentContainerStyle={styles.messageList}
           renderItem={({ item }) => (
-            <MessageBubble message={item} isOwn={item.sender_id === user?.id} />
+            <MessageBubble
+              message={item}
+              isOwn={item.sender_id === user?.id}
+              partnerName={info.partnerName}
+              showRightAway={showRightAway}
+              showExplainer={!explainerSeen}
+              onRevealed={handleExplainerSeen}
+              onLongPress={() => handleMessageLongPress(item)}
+            />
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -446,6 +616,18 @@ export default function ConversationScreen() {
         ) : (
           <View style={styles.inputBar}>
             <TouchableOpacity
+              onPress={handleAttach}
+              disabled={sending || voice.uploading || mediaSending}
+              accessibilityRole="button"
+              accessibilityLabel="Send a photo or video"
+              style={[
+                styles.micButton,
+                (sending || voice.uploading || mediaSending) && styles.sendButtonDisabled,
+              ]}
+            >
+              <Text style={styles.attachIcon}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={voice.startRecording}
               disabled={sending || voice.uploading}
               style={[
@@ -490,6 +672,25 @@ export default function ConversationScreen() {
         loading={reporting}
       />
 
+      <MediaComposer
+        key={batch}
+        visible={composerOpen}
+        items={picked}
+        partnerName={info.partnerName}
+        sending={mediaSending}
+        progress={mediaProgress}
+        onRemove={(index) => {
+          const next = picked.filter((_, i) => i !== index);
+          setPicked(next);
+          if (next.length === 0) setComposerOpen(false);
+        }}
+        onCancel={() => {
+          setComposerOpen(false);
+          setPicked([]);
+        }}
+        onSend={handleSendMedia}
+      />
+
       <WorriedSheet
         visible={showWorried}
         partnerName={info.partnerName}
@@ -505,6 +706,19 @@ export default function ConversationScreen() {
 }
 
 const styles = StyleSheet.create({
+  unsentText: {
+    fontSize: 13,
+    fontStyle: "italic",
+    color: "#78716C",
+    marginVertical: 4,
+  },
+  unsentOwn: { alignSelf: "flex-end" },
+  unsentTheirs: { alignSelf: "flex-start" },
+  attachIcon: {
+    fontSize: 24,
+    lineHeight: 26,
+    color: "#57534E",
+  },
   container: {
     flex: 1,
     backgroundColor: "#FAFAF9",

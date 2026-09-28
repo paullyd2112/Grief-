@@ -8,9 +8,11 @@ import {
 import { Alert } from "react-native";
 import { supabase } from "../lib/supabase";
 import { sendErrorMessage } from "../lib/send-errors";
-import * as FileSystem from "expo-file-system";
+import { File } from "expo-file-system";
 
-const MAX_DURATION_MS = 120_000; // 2 minutes
+// Long enough that nobody needs to move to another app to say something
+// properly (DECISIONS.md O3). The database allows a few seconds of slack.
+const MAX_DURATION_MS = 300_000; // 5 minutes
 
 export function useVoiceMemo(conversationId: string | undefined) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -86,16 +88,14 @@ export function useVoiceMemo(conversationId: string | undefined) {
         const fileUri = recorder.uri;
         const fileName = `${conversationId}/${Date.now()}.m4a`;
 
-        const fileInfo = await FileSystem.getInfoAsync(fileUri);
-        if (!fileInfo.exists) throw new Error("Recording file not found");
-
-        const fileContent = await FileSystem.readAsStringAsync(fileUri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+        // SDK 57 removed the old readAsStringAsync/getInfoAsync (they throw
+        // at runtime), so read the recording with the File API.
+        const file = new File(fileUri);
+        if (!file.exists) throw new Error("Recording file not found");
 
         const { error: uploadError } = await supabase.storage
           .from("voice-memos")
-          .upload(fileName, decode(fileContent), {
+          .upload(fileName, await file.bytes(), {
             contentType: "audio/m4a",
           });
 
@@ -105,7 +105,7 @@ export function useVoiceMemo(conversationId: string | undefined) {
           .from("voice_memos")
           .insert({
             storage_path: fileName,
-            duration_ms: Math.max(finalDuration, 1),
+            duration_ms: Math.min(Math.max(finalDuration, 1), MAX_DURATION_MS),
           })
           .select()
           .single();
@@ -140,13 +140,4 @@ export function useVoiceMemo(conversationId: string | undefined) {
     cancelRecording,
     sendVoiceMemo,
   };
-}
-
-function decode(base64: string): Uint8Array {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
 }

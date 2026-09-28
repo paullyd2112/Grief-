@@ -15,7 +15,8 @@ import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/hooks/useAuth";
 import { useProfile } from "../../src/hooks/useProfile";
 import { SUPPORT_EMAIL } from "../../src/lib/config";
-import type { MatchEndNotice, Warning } from "../../src/lib/types";
+import type { AttachmentKind, MatchEndNotice, Warning } from "../../src/lib/types";
+import { describeAttachments } from "../../src/lib/media";
 
 interface ConversationItem {
   id: string;
@@ -24,6 +25,21 @@ interface ConversationItem {
   sortAt: string;
   unread: boolean;
   ended: boolean;
+}
+
+
+// One line for the conversation list. Never shows what a photo is, only that
+// one was sent.
+function previewFor(msg: {
+  kind: string;
+  body: string | null;
+  unsent_at: string | null;
+  attachments: { kind: AttachmentKind }[] | null;
+}): string | null {
+  if (msg.unsent_at) return "Unsent";
+  if (msg.kind === "voice") return "Voice memo";
+  if (msg.kind === "media") return describeAttachments((msg.attachments ?? []).map((a) => a.kind)) || "Photo";
+  return msg.body;
 }
 
 export default function HomeScreen() {
@@ -76,7 +92,7 @@ export default function HomeScreen() {
         .single();
       const { data: lastMsg } = await supabase
         .from("messages")
-        .select("body, kind, sender_id, created_at")
+        .select("body, kind, sender_id, created_at, unsent_at, attachments(kind)")
         .eq("conversation_id", conv.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -93,11 +109,7 @@ export default function HomeScreen() {
       items.push({
         id: conv.id,
         partnerName: partner?.display_name ?? "Someone",
-        lastMessage: lastMsg
-          ? lastMsg.kind === "voice"
-            ? "Voice memo"
-            : lastMsg.body
-          : null,
+        lastMessage: lastMsg ? previewFor(lastMsg) : null,
         sortAt: lastMsg?.created_at ?? conv.created_at,
         unread,
         ended,

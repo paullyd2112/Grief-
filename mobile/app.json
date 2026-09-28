@@ -28,7 +28,25 @@
       "expo-secure-store",
       "expo-splash-screen",
       "expo-audio",
-      "expo-font"
+      "expo-font",
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ndo lets you choose photos and videos to share in a conversation.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Ndo saves photos and videos someone has shared with you, when they allow it.",
+          "savePhotosPermission": "Ndo saves photos and videos someone has shared with you, when they allow it.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "expo-asset"
     ]
   }
 }
