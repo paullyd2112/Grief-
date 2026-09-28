@@ -153,8 +153,10 @@ Ndo is for adults only — you must be 18 or older to create an account, and
 members may not be minors.
 
 This code of conduct applies to all activity within Ndo — matched
-conversations, profiles, and any community spaces added later. It does not
-extend to what members choose to do off-platform after connecting elsewhere.
+conversations, profiles, and any community spaces added later. Members may
+choose to connect off-platform; that's their call and their risk. You can still
+report someone you were matched with for how they treated you off the app, and
+Ndo may act on it.
 
 Questions, reports, or appeals: [support email/contact — to be added once set
 up].

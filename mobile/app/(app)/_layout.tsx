@@ -22,6 +22,7 @@ export default function AppLayout() {
       <Stack.Screen name="guidelines" options={{ title: "Guidelines" }} />
       <Stack.Screen name="my-data" options={{ title: "Your Data" }} />
       <Stack.Screen name="feedback" options={{ title: "Feedback" }} />
+      <Stack.Screen name="password" options={{ title: "Password" }} />
     </Stack>
   );
 }

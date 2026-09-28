@@ -211,9 +211,10 @@ export default function CodeOfConduct() {
         </p>
         <p>
           This code of conduct applies to all activity within Ndo — matched
-          conversations, profiles, and any community spaces added later. It
-          does not extend to what members choose to do off-platform after
-          connecting elsewhere.
+          conversations, profiles, and any community spaces added later.
+          Members may choose to connect off-platform; that&apos;s their call and
+          their risk. You can still report someone you were matched with for
+          how they treated you off the app, and Ndo may act on it.
         </p>
         <p>
           Questions, reports, or appeals:{" "}

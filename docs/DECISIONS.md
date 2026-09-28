@@ -139,6 +139,12 @@ anything they'd rather not discuss. Like the rest of intake, only the operator
 sees them, for matching; the match does not. The screen says so and suggests
 telling the match directly.
 
+### D20. Password sign-in
+**Decided.** Members can sign in with an email code or a password. Accounts
+are still created with a code, which proves the member owns the address; a
+password is optional and set in Settings > Password. Signing in with a code
+always works, so it doubles as "forgot password". Minimum 8 characters.
+
 ---
 
 ## Open

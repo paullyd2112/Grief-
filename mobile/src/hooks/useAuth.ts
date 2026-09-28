@@ -41,9 +41,31 @@ export function useAuth() {
     []
   );
 
+  // Password sign-in is an alternative to the email code for members who
+  // have set a password (Settings > Password). Accounts are still created
+  // with a code, which proves the member owns the email address.
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error };
+  }, []);
+
+  const setPassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error };
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
 
-  return { session, user, loading, signInWithOtp, verifyOtp, signOut };
+  return {
+    session,
+    user,
+    loading,
+    signInWithOtp,
+    verifyOtp,
+    signInWithPassword,
+    setPassword,
+    signOut,
+  };
 }

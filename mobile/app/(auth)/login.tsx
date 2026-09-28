@@ -12,10 +12,11 @@ import {
 import { useAuth } from "../../src/hooks/useAuth";
 
 export default function LoginScreen() {
-  const { signInWithOtp, verifyOtp } = useAuth();
+  const { signInWithOtp, verifyOtp, signInWithPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [step, setStep] = useState<"email" | "verify">("email");
+  const [password, setPassword] = useState("");
+  const [step, setStep] = useState<"email" | "verify" | "password">("email");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +43,29 @@ export default function LoginScreen() {
       setError(err.message);
     }
     // On success, onAuthStateChange fires and _layout.tsx handles navigation
+  };
+
+  const handlePasswordSignIn = async () => {
+    if (!email.trim() || !password) return;
+    setLoading(true);
+    setError(null);
+    const { error: err } = await signInWithPassword(email.trim().toLowerCase(), password);
+    setLoading(false);
+    if (err) {
+      // Supabase says "Invalid login credentials" for both a wrong password
+      // and an account that has never set one.
+      setError(
+        "That email and password don't match. If you haven't set a password yet, sign in with a code and add one in Settings."
+      );
+    }
+    // On success, onAuthStateChange fires and _layout.tsx handles navigation
+  };
+
+  const switchTo = (next: "email" | "password") => {
+    setStep(next);
+    setOtp("");
+    setPassword("");
+    setError(null);
   };
 
   return (
@@ -80,6 +104,55 @@ export default function LoginScreen() {
               ) : (
                 <Text style={styles.buttonText}>Continue</Text>
               )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.backButton} onPress={() => switchTo("password")}>
+              <Text style={styles.backText}>Sign in with a password</Text>
+            </TouchableOpacity>
+          </>
+        ) : step === "password" ? (
+          <>
+            <Text style={styles.label}>Your email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              placeholderTextColor="#A8A29E"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="username"
+              autoComplete="email"
+              returnKeyType="next"
+            />
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Your password"
+              placeholderTextColor="#A8A29E"
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="password"
+              autoComplete="current-password"
+              returnKeyType="go"
+              onSubmitEditing={handlePasswordSignIn}
+            />
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handlePasswordSignIn}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Sign in</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.backButton} onPress={() => switchTo("email")}>
+              <Text style={styles.backText}>Forgot it? Email me a code instead</Text>
             </TouchableOpacity>
           </>
         ) : (

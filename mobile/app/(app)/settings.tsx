@@ -175,6 +175,14 @@ export default function SettingsScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity
+        style={styles.linkRow}
+        onPress={() => router.push("/(app)/password")}
+      >
+        <Text style={styles.linkText}>Password</Text>
+        <Text style={styles.linkArrow}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={styles.dangerButton}
         onPress={() =>
           Alert.alert(

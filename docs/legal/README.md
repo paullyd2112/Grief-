@@ -30,14 +30,14 @@ Applied to all three documents and their web pages:
 - **No timed suspensions.** Suspensions and bans are decided case by case, so
   the enforcement table says "Suspension" instead of "Temporary suspension".
 - **"Keep your login details secure"** stays in the Terms.
+- **Passwords.** Members can sign in with an email code or a password (set in
+  Settings > Password), so the Privacy Policy's "password" is now accurate.
+- **Off-platform conduct.** The Code of Conduct's scope now matches Terms 3.5
+  and 4.5: members may connect off-platform at their own risk, and can still
+  report a match for how they behaved off the app.
 
 Still open:
 
-- **Passwords.** The founder wants sign-in by email code and by password. The
-  app only has email codes today, so the Privacy Policy's "password" describes
-  a feature that isn't built yet.
-- **Off-platform conduct.** The Code of Conduct's scope still says it doesn't
-  extend off-platform, while Terms 3.5 and 4.5 say Ndo may act on it.
 - **Staff access for "safety, legal, or security reasons"** (Privacy Policy
   section 3) is still broader than the database allows.
 - Report outcomes and the "profile" wording (items 5 and 6 below).
