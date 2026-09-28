@@ -145,6 +145,19 @@ are still created with a code, which proves the member owns the address; a
 password is optional and set in Settings > Password. Signing in with a code
 always works, so it doubles as "forgot password". Minimum 8 characters.
 
+### D21. Exceptional access for legal or safety reasons
+**Decided.** Ndo may read an unreported conversation when the law or someone's
+safety requires it. The admin console is unchanged (still no way to open
+unreported conversations); the founder does it directly in the database and
+logs it in `access_log` first. The user-facing promise now says "or the law or
+someone's safety requires it". See ACCESS_POLICY.md, "Exceptional access".
+
+### D22. Staying signed in
+**Decided.** Members sign in once (email code, or password once set) and stay
+signed in, like Instagram or Snapchat. Sessions persist in the Keychain and
+refresh when the app returns to the foreground. Supabase's session time-box
+and inactivity timeout must stay off.
+
 ---
 
 ## Open

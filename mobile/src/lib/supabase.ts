@@ -1,7 +1,7 @@
 import "react-native-url-polyfill/auto";
 import { createClient } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 
 // SecureStore adapter for Supabase auth — stores tokens in the iOS Keychain
 // (or Android equivalent). Falls back to in-memory on web.
@@ -37,3 +37,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+
+// Members sign in once and stay signed in, like Instagram or Snapchat: the
+// session lives in the Keychain and its refresh token doesn't expire. Token
+// refresh only runs while the app is in the foreground, so restart it
+// whenever the app comes back (Supabase's recommended setup for React Native).
+// Keep "Time-box user sessions" and "Inactivity timeout" off in the Supabase
+// dashboard (Authentication > Sessions), or members will be signed out.
+if (Platform.OS !== "web") {
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+}

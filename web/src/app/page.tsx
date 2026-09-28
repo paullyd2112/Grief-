@@ -6,7 +6,7 @@ import appHomeDark from "../../public/app-home-dark.png";
 
 // The privacy promise exactly as docs/ACCESS_POLICY.md words it for users.
 const PROMISE =
-  "Your conversations are encrypted in transit and at rest. Nobody at Ndo reads them unless you or the person you're talking to reports a message. When that happens, only the reported message and a little context around it are sent to us. Every time someone at Ndo looks at your information, it's logged, and you can ask to see that log.";
+  "Your conversations are encrypted in transit and at rest. Nobody at Ndo reads them unless you or the person you're talking to reports a message, or the law or someone's safety requires it. When a message is reported, only the reported message and a little context around it are sent to us. Every time someone at Ndo looks at your information, it's logged, and you can ask to see that log.";
 
 const steps = [
   {

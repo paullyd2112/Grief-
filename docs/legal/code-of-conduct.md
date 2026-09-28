@@ -155,8 +155,8 @@ members may not be minors.
 This code of conduct applies to all activity within Ndo — matched
 conversations, profiles, and any community spaces added later. Members may
 choose to connect off-platform; that's their call and their risk. You can still
-report someone you were matched with for how they treated you off the app, and
-Ndo may act on it.
+report someone you were matched with for how they treated you off the app,
+whether in person, by text, or on social media, and Ndo may act on it.
 
 Questions, reports, or appeals: [support email/contact — to be added once set
 up].

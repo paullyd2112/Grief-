@@ -14,6 +14,9 @@ row-level security policy anywhere that grants an administrator `SELECT` on
 `messages` or `voice_memos`. No admin screen queries them. The only path by
 which conversation content reaches an operator is a report.
 
+The one exception is described under "Exceptional access" below: a legal
+demand or a serious safety risk. It never goes through the admin console.
+
 ## What an operator CAN read
 
 | Data | Readable | Why |
@@ -47,6 +50,23 @@ When a report is filed, operators get an alert (a Slack-compatible webhook,
 configured in Supabase Vault). The alert says only that a report exists and how
 many are open: no names, no reason, no content. Everything else stays behind
 the admin console and its access log.
+
+## Exceptional access (legal or safety)
+
+Decided Sep 28 (DECISIONS.md D21). Ndo may read a conversation that nobody
+reported only when the law requires it (for example a subpoena or court order)
+or when someone's safety is at serious risk. The Privacy Policy says so, and so
+does the promise users see.
+
+- The admin console stays as it is: it has no way to open an unreported
+  conversation, and no one adds one.
+- Only the founder does this, directly in the database, and only for the
+  conversation the request or risk concerns.
+- Before reading, the founder writes a row to `access_log` by hand with the
+  subject and a justification, so the member's own access log shows it, as the
+  promise says. (The one exception is the concern rule under Logging below.)
+- Anything read this way is used only for the legal request or the safety
+  response, and is not kept afterwards.
 
 ## Logging
 
@@ -98,7 +118,8 @@ job is just a sentence.
 ## The promise, as users will see it
 
 > Your conversations are encrypted in transit and at rest. Nobody at Ndo reads
-> them unless you or the person you're talking to reports a message. When that
-> happens, only the reported message and a little context around it are sent to
-> us. Every time someone at Ndo looks at your information, it's logged, and you
-> can ask to see that log.
+> them unless you or the person you're talking to reports a message, or the law
+> or someone's safety requires it. When a message is reported, only the
+> reported message and a little context around it are sent to us. Every time
+> someone at Ndo looks at your information, it's logged, and you can ask to see
+> that log.

@@ -34,12 +34,14 @@ Applied to all three documents and their web pages:
   Settings > Password), so the Privacy Policy's "password" is now accurate.
 - **Off-platform conduct.** The Code of Conduct's scope now matches Terms 3.5
   and 4.5: members may connect off-platform at their own risk, and can still
-  report a match for how they behaved off the app.
+  report a match for how they behaved off the app, in person, by text or on
+  social media.
+- **Staff access for safety, legal or security reasons** stays in the Privacy
+  Policy. The admin console is unchanged; the website promise and
+  ACCESS_POLICY.md now say "or the law or someone's safety requires it" (D21).
 
 Still open:
 
-- **Staff access for "safety, legal, or security reasons"** (Privacy Policy
-  section 3) is still broader than the database allows.
 - Report outcomes and the "profile" wording (items 5 and 6 below).
 
 The notes below are the original review, kept for reference.

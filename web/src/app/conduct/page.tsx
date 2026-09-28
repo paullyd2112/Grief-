@@ -214,7 +214,8 @@ export default function CodeOfConduct() {
           conversations, profiles, and any community spaces added later.
           Members may choose to connect off-platform; that&apos;s their call and
           their risk. You can still report someone you were matched with for
-          how they treated you off the app, and Ndo may act on it.
+          how they treated you off the app, whether in person, by text, or on
+          social media, and Ndo may act on it.
         </p>
         <p>
           Questions, reports, or appeals:{" "}
