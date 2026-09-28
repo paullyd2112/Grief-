@@ -20,6 +20,7 @@ const ACTION_LABELS: Record<string, string> = {
   match_created: "Created match",
   report_resolved: "Resolved report",
   report_snapshot_read: "Read snapshot",
+  report_media_viewed: "Viewed reported photos or videos",
 };
 
 export default async function AccessLogPage() {

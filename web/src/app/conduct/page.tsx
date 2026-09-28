@@ -53,6 +53,7 @@ const endingBlocking = [
 const unacceptable = [
   "Harassment, hate speech, or discrimination based on race, ethnicity, religion, gender, sexual orientation, disability, or any other protected characteristic.",
   "Romantic or sexual advances. Ndo is a grief-support space, not a dating platform.",
+  "Sending sexual or explicit photos or videos. This is a permanent ban.",
   "Soliciting members for sales, services, coaching, fundraising, or any commercial purpose.",
   "Minimizing, mocking, or arguing with someone’s grief, or telling them how they should feel.",
   "Sharing another member’s identity, story, or messages outside the app without consent.",
@@ -87,7 +88,7 @@ const reporting = [
 const enforcement: [string, string][] = [
   ["First-time, lower-severity (e.g., unsolicited advice, minor tone issue)", "Warning + brief guidance"],
   ["Repeated lower-severity, or single moderate violation (e.g., solicitation, sharing a match’s info)", "Suspension"],
-  ["Severe or repeated (e.g., harassment, threats, sexual advances, impersonating a professional)", "Permanent ban"],
+  ["Severe or repeated (e.g., harassment, threats, sexual advances, explicit images, impersonating a professional)", "Permanent ban"],
   ["Immediate danger to self or others", "Crisis resources surfaced immediately; account action follows separately"],
 ];
 

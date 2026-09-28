@@ -26,7 +26,8 @@ const collected: { category: string; examples: React.ReactNode; source: React.Re
   },
   {
     category: "Messages and profile",
-    examples: "Conversations with your matches, anything you add to your profile",
+    examples:
+      "Conversations with your matches, including photos, videos and voice memos, and anything you add to your profile",
     source: "You and your matches",
   },
   {

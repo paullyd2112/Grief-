@@ -33,6 +33,9 @@ demand or a serious safety risk. It never goes through the admin console.
 
 - Message bodies in any unreported conversation.
 - Voice memo audio in any unreported conversation. (Memos are never transcribed; see DECISIONS.md D7.)
+- Photos and videos in any unreported conversation. The `attachments` table and
+  bucket follow the same rule as `messages`: participants of a live
+  conversation only, no admin policy (DECISIONS.md D23).
 - Any content in a conversation after either party deletes it, unless it was
   reported before deletion.
 
@@ -43,6 +46,12 @@ demand or a serious safety risk. It never goes through the admin console.
 2. That snapshot is written to `reports.snapshot`. It is a **copy**, not a
    pointer. It survives deletion of the original conversation.
 3. Only then does that content become readable by an operator.
+
+Photos and videos can't go in a JSON snapshot, so the reporter's app copies
+the ones in that window into the `reported-media` bucket, under a folder named
+after the reporter. Only operators can read it, and viewing it writes
+`report_media_viewed` to the access log. Like the snapshot, it's a copy: it
+survives unsend and deletion, and it's removed with the report after 90 days.
 
 The snapshot is what an operator reviews. The live conversation stays closed.
 
@@ -90,6 +99,9 @@ about gets support.
 | Reported content under legal hold | Held until the hold is lifted, then 90-day clock resumes |
 | Conversation deleted by either party | Removed for both parties immediately |
 | Voice memo audio in a deleted conversation | Unreadable immediately; files removed by the deleting device, with a daily sweep as backup |
+| Photos and videos in a deleted conversation | Same as voice memo audio |
+| Unsent photos, videos and voice memos | Gone for both people immediately; files removed by the sender's device, with the daily job clearing any it missed |
+| Reported photo and video copies | 90 days with their report (longer under legal hold), then removed by the daily job |
 | Account deleted by the user | Hidden and unmatched immediately; hard-deleted after 30 days unless they sign back in and keep it |
 | Intake data after account deletion | 30 days, then hard-deleted |
 | Database backups | 30 days |

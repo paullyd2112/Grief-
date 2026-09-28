@@ -79,6 +79,7 @@ not a place to perform or sell anything.
   characteristic.
 - Romantic or sexual advances. Ndo is a grief-support space, not a dating
   platform.
+- Sending sexual or explicit photos or videos. This is a permanent ban.
 - Soliciting members for sales, services, coaching, fundraising, or any
   commercial purpose.
 - Minimizing, mocking, or arguing with someone's grief, or telling them how
@@ -141,7 +142,7 @@ Consequences scale with severity and pattern, not a fixed strike count:
 | --- | --- |
 | First-time, lower-severity (e.g., unsolicited advice, minor tone issue) | Warning + brief guidance |
 | Repeated lower-severity, or single moderate violation (e.g., solicitation, sharing a match's info) | Suspension |
-| Severe or repeated (e.g., harassment, threats, sexual advances, impersonating a professional) | Permanent ban |
+| Severe or repeated (e.g., harassment, threats, sexual advances, explicit images, impersonating a professional) | Permanent ban |
 | Immediate danger to self or others | Crisis resources surfaced immediately; account action follows separately |
 
 Members can appeal a decision by contacting Ndo support; appeals are reviewed

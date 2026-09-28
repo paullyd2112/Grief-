@@ -40,6 +40,10 @@ Applied to all three documents and their web pages:
   Policy. The admin console is unchanged; the website promise and
   ACCESS_POLICY.md now say "or the law or someone's safety requires it" (D21).
 
+Photos and videos (D23): the Privacy Policy's "Messages and profile" row now
+includes photos, videos and voice memos, and the Code of Conduct lists sending
+sexual or explicit photos or videos as a permanent ban.
+
 Still open:
 
 - Report outcomes and the "profile" wording (items 5 and 6 below).

@@ -33,7 +33,7 @@ This policy is part of the Ndo Terms of Service.
 | --- | --- | --- |
 | Account information | Name or display name, email, password, date of birth or age confirmation | You, at sign-up |
 | Intake information | Who you lost, roughly when, same-loss matching preference, how often you'd like to talk, topics you'd rather avoid | You, at intake (you can skip questions) |
-| Messages and profile | Conversations with your matches, anything you add to your profile | You and your matches |
+| Messages and profile | Conversations with your matches, including photos, videos and voice memos, and anything you add to your profile | You and your matches |
 | Safety records | Reports, blocks, ended matches, moderation decisions | You, other members, Ndo staff |
 | Feedback and support | Messages sent through the Feedback tab or to support | You |
 | Payment information (after beta) | Subscription status and billing history; card details are handled by our payment processor, not stored by Ndo | Payment processor [CONFIRM] |
