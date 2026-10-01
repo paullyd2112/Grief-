@@ -34,11 +34,6 @@ export default function TabsLayout() {
         name="settings"
         options={{
           title: "You",
-          headerShown: true,
-          headerStyle: { backgroundColor: color.background },
-          headerTintColor: color.text,
-          headerShadowVisible: false,
-          headerTitleStyle: { fontFamily: fonts.sansSemibold },
           tabBarIcon: ({ focused, color: tint }) => (
             <Icon name={focused ? "personFill" : "person"} size={22} color={tint} />
           ),

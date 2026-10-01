@@ -1,15 +1,9 @@
 import { useState } from "react";
-import {
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../src/hooks/useAuth";
+import { Button, Screen, Text, TextField } from "../../src/components/ui";
+import { space } from "../../src/theme";
 
 const MIN_LENGTH = 8;
 
@@ -53,22 +47,30 @@ export default function PasswordScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.intro}>
-        Set a password to sign in without waiting for an email code. You can
-        still sign in with a code any time, so if you forget your password
-        you won&apos;t be locked out.
-      </Text>
+    <Screen
+      underHeader
+      footer={<Button title="Save password" block loading={saving} onPress={handleSave} />}
+    >
+      <View style={styles.intro}>
+        <Text variant="title1" accessibilityRole="header">
+          Password
+        </Text>
+        <Text variant="callout" color="textSecondary">
+          Set a password to sign in without waiting for an email code. You can still sign in with
+          a code any time, so if you forget your password you won&apos;t be locked out.
+        </Text>
+        {user?.email && (
+          <Text variant="footnote" color="textTertiary">
+            Signed in as {user.email}
+          </Text>
+        )}
+      </View>
 
-      {user?.email && <Text style={styles.email}>Signed in as {user.email}</Text>}
-
-      <Text style={styles.label}>New password</Text>
-      <TextInput
-        style={styles.input}
+      <TextField
+        label="New password"
         value={password}
         onChangeText={setPasswordDraft}
         placeholder={`At least ${MIN_LENGTH} characters`}
-        placeholderTextColor="#A8A29E"
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}
@@ -76,13 +78,10 @@ export default function PasswordScreen() {
         autoComplete="new-password"
         returnKeyType="next"
       />
-
-      <Text style={styles.label}>Type it again</Text>
-      <TextInput
-        style={styles.input}
+      <TextField
+        label="Type it again"
         value={confirm}
         onChangeText={setConfirm}
-        placeholderTextColor="#A8A29E"
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}
@@ -90,79 +89,12 @@ export default function PasswordScreen() {
         autoComplete="new-password"
         returnKeyType="done"
         onSubmitEditing={handleSave}
+        error={error}
       />
-
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      <TouchableOpacity
-        style={[styles.button, saving && styles.buttonDisabled]}
-        onPress={handleSave}
-        disabled={saving}
-      >
-        {saving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Save password</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  intro: {
-    fontSize: 15,
-    color: "#57534E",
-    lineHeight: 22,
-    marginBottom: 16,
-  },
-  email: {
-    fontSize: 14,
-    color: "#78716C",
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 15,
-    color: "#44403C",
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D6D3D1",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 17,
-    color: "#1C1917",
-    backgroundColor: "#fff",
-    marginBottom: 16,
-  },
-  error: {
-    color: "#DC2626",
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: "#1C1917",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-  },
+  intro: { gap: space.sm },
 });

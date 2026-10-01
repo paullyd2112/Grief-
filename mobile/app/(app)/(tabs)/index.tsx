@@ -319,7 +319,7 @@ export default function HomeScreen() {
             <Text variant="callout" color="textSecondary">
               {"This is a warning, not a suspension. If it happens again, we may suspend your account."}
             </Text>
-            {SUPPORT_EMAIL && (
+            {!!SUPPORT_EMAIL && (
               <Pressable onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
                 <Text variant="footnote" color="accent">
                   {`If you think this was a mistake, email ${SUPPORT_EMAIL}.`}

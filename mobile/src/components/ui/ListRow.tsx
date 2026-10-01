@@ -14,6 +14,7 @@ export interface ListRowProps {
   // Emphasize the title and subtitle, e.g. for unread conversations.
   emphasized?: boolean;
   subtitleLines?: number;
+  titleLines?: number;
   onPress?: () => void;
   disabled?: boolean;
   accessibilityLabel?: string;
@@ -31,6 +32,7 @@ export function ListRow({
   chevron = false,
   emphasized = false,
   subtitleLines = 1,
+  titleLines = 1,
   onPress,
   disabled,
   accessibilityLabel,
@@ -54,7 +56,7 @@ export function ListRow({
     >
       {leading}
       <View style={styles.body}>
-        <Text variant={emphasized ? "headline" : "bodyMedium"} numberOfLines={1}>
+        <Text variant={emphasized ? "headline" : "bodyMedium"} numberOfLines={titleLines}>
           {title}
         </Text>
         {!!subtitle && (

@@ -1,15 +1,7 @@
-import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
+import * as Localization from "expo-localization";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/hooks/useAuth";
 import type {
@@ -19,46 +11,19 @@ import type {
   MatchPreference,
   TalkFrequency,
 } from "../../src/lib/types";
-import * as Localization from "expo-localization";
+import {
+  Button,
+  Icon,
+  PillSelect,
+  Screen,
+  Text,
+  TextField,
+  haptics,
+  type PillOption,
+} from "../../src/components/ui";
+import { radius, space, useTheme } from "../../src/theme";
 
-// --- Reusable pill selector ---
-function PillSelect<T extends string>({
-  label,
-  options,
-  value,
-  onSelect,
-}: {
-  label: string;
-  options: { value: T; label: string }[];
-  value: T | null;
-  onSelect: (v: T) => void;
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.pills}>
-        {options.map((opt) => (
-          <TouchableOpacity
-            key={opt.value}
-            style={[styles.pill, value === opt.value && styles.pillSelected]}
-            onPress={() => onSelect(opt.value)}
-          >
-            <Text
-              style={[
-                styles.pillText,
-                value === opt.value && styles.pillTextSelected,
-              ]}
-            >
-              {opt.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-const RELATIONSHIPS: { value: RelationshipType; label: string }[] = [
+const RELATIONSHIPS: PillOption<RelationshipType>[] = [
   { value: "sibling", label: "Sibling" },
   { value: "parent", label: "Parent" },
   { value: "child", label: "Child" },
@@ -67,7 +32,7 @@ const RELATIONSHIPS: { value: RelationshipType; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-const MANNER: { value: MannerOfDeath; label: string }[] = [
+const MANNER: PillOption<MannerOfDeath>[] = [
   { value: "illness", label: "Illness" },
   { value: "accident", label: "Accident" },
   { value: "violence", label: "Violence" },
@@ -78,13 +43,13 @@ const MANNER: { value: MannerOfDeath; label: string }[] = [
   { value: "prefer_not_to_say", label: "Prefer not to say" },
 ];
 
-const SUDDENNESS: { value: Suddenness; label: string }[] = [
+const SUDDENNESS: PillOption<Suddenness>[] = [
   { value: "sudden", label: "Sudden" },
   { value: "gradual", label: "Gradual" },
   { value: "prefer_not_to_say", label: "Prefer not to say" },
 ];
 
-const TIME_OPTIONS = [
+const TIME_OPTIONS: PillOption<string>[] = [
   "Less than 1 month",
   "1–3 months",
   "3–6 months",
@@ -92,14 +57,19 @@ const TIME_OPTIONS = [
   "1–2 years",
   "2–5 years",
   "5+ years",
-];
+].map((t) => ({ value: t, label: t }));
 
-const TALK_FREQUENCY: { value: TalkFrequency; label: string }[] = [
+const TALK_FREQUENCY: PillOption<TalkFrequency>[] = [
   { value: "daily", label: "Most days" },
   { value: "few_times_a_week", label: "A few times a week" },
   { value: "weekly", label: "Once a week or so" },
   { value: "on_hard_days", label: "When a hard day hits" },
   { value: "not_sure", label: "Not sure yet" },
+];
+
+const FINANCIAL: PillOption<"yes" | "no">[] = [
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
 ];
 
 const MATCH_PREFS: { value: MatchPreference; label: string; desc: string }[] = [
@@ -120,10 +90,14 @@ const MATCH_PREFS: { value: MatchPreference; label: string; desc: string }[] = [
   },
 ];
 
+// One question per screen: a long form is a lot to face while grieving.
+// Required steps hold Continue until answered; the rest can be skipped.
 export default function IntakeScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const { color } = useTheme();
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(0);
 
   // Form state
   const [relationship, setRelationship] = useState<RelationshipType | null>(null);
@@ -168,18 +142,7 @@ export default function IntakeScreen() {
 
   const handleSubmit = async () => {
     if (!user) return;
-    if (!relationship) {
-      Alert.alert("Please tell us your relationship to the person who died.");
-      return;
-    }
-    if (!timeSince) {
-      Alert.alert("Please tell us how long it's been.");
-      return;
-    }
-    if (!matchPref) {
-      Alert.alert("Please choose a matching preference.");
-      return;
-    }
+    if (!relationship || !timeSince || !matchPref) return;
 
     setLoading(true);
 
@@ -218,363 +181,308 @@ export default function IntakeScreen() {
 
   if (prefilling) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1C1917" />
+      <View style={[styles.center, { backgroundColor: color.background }]}>
+        <ActivityIndicator color={color.textSecondary} />
       </View>
     );
   }
 
-  return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.intro}>
-        This is private — encrypted and readable only by the person who matches
-        you. It's not shared with anyone else. Take your time.
-      </Text>
-
-      {/* Relationship */}
-      <PillSelect
-        label="Your relationship to the person who died"
-        options={RELATIONSHIPS}
-        value={relationship}
-        onSelect={setRelationship}
-      />
-
-      {relationship && (
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            Any detail? (e.g. "older brother", "stepmom")
+  const steps: { required?: boolean; answered: boolean; body: ReactNode }[] = [
+    {
+      required: true,
+      answered: !!relationship,
+      body: (
+        <>
+          <Question
+            title="Who did you lose?"
+            hint="This is private — encrypted and readable only by the person who matches you. It's not shared with anyone else. Take your time."
+          />
+          <PillSelect
+            options={RELATIONSHIPS}
+            value={relationship}
+            onChange={setRelationship}
+            accessibilityLabel="Your relationship to the person who died"
+          />
+          {relationship && (
+            <TextField
+              label="Any detail?"
+              helper={'Optional. For example "older brother" or "stepmom".'}
+              value={relationshipDetail}
+              onChangeText={setRelationshipDetail}
+            />
+          )}
+        </>
+      ),
+    },
+    {
+      answered: !!manner || !!suddenness,
+      body: (
+        <>
+          <Question title="How did they die?" hint="Only if you want to say." />
+          <PillSelect options={MANNER} value={manner} onChange={setManner} />
+          <Text variant="headline" style={styles.subQuestion}>
+            Was it sudden or gradual?
           </Text>
-          <TextInput
-            style={styles.textInput}
-            value={relationshipDetail}
-            onChangeText={setRelationshipDetail}
-            placeholder="Optional"
-            placeholderTextColor="#A8A29E"
+          <PillSelect options={SUDDENNESS} value={suddenness} onChange={setSuddenness} />
+        </>
+      ),
+    },
+    {
+      answered: !!deceasedAge.trim(),
+      body: (
+        <>
+          <Question title="How old were they?" />
+          <TextField
+            label="Their age"
+            value={deceasedAge}
+            onChangeText={setDeceasedAge}
+            placeholder="e.g. 24, or 'early 20s'"
+          />
+        </>
+      ),
+    },
+    {
+      required: true,
+      answered: !!timeSince,
+      body: (
+        <>
+          <Question title="How long has it been?" />
+          <PillSelect options={TIME_OPTIONS} value={timeSince} onChange={setTimeSince} />
+        </>
+      ),
+    },
+    {
+      required: true,
+      answered: !!matchPref,
+      body: (
+        <>
+          <Question title="Who would you like to be matched with?" />
+          <View style={styles.choices} accessibilityRole="radiogroup">
+            {MATCH_PREFS.map((opt) => (
+              <ChoiceCard
+                key={opt.value}
+                title={opt.label}
+                body={opt.desc}
+                selected={matchPref === opt.value}
+                onPress={() => setMatchPref(opt.value)}
+              />
+            ))}
+          </View>
+        </>
+      ),
+    },
+    {
+      answered: !!talkFrequency,
+      body: (
+        <>
+          <Question title="How often would you like to talk?" />
+          <PillSelect options={TALK_FREQUENCY} value={talkFrequency} onChange={setTalkFrequency} />
+        </>
+      ),
+    },
+    {
+      answered: !!avoidTopics.trim(),
+      body: (
+        <>
+          <Question
+            title="Anything you'd rather not talk about?"
+            hint="We'll keep it in mind when choosing your match. Your match doesn't see your answers here, so let them know too if you'd like."
+          />
+          <TextField
+            label="Topics to avoid"
+            value={avoidTopics}
+            onChangeText={setAvoidTopics}
+            placeholder="e.g. religion, how they died, the funeral"
+            multiline
+            maxLength={1000}
+            textAlignVertical="top"
+          />
+        </>
+      ),
+    },
+    {
+      answered: financialStrain !== null,
+      body: (
+        <>
+          <Question
+            title="Is financial strain part of what you're navigating?"
+            hint="Some people want to match on this. Totally optional — never assumed from anything else."
+          />
+          <PillSelect
+            options={FINANCIAL}
+            value={financialStrain === null ? null : financialStrain ? "yes" : "no"}
+            onChange={(v) => setFinancialStrain(v === "yes")}
+          />
+        </>
+      ),
+    },
+    {
+      answered: !!freeText.trim(),
+      body: (
+        <>
+          <Question title="Anything else you want a match to know?" />
+          <TextField
+            label="Anything else"
+            value={freeText}
+            onChangeText={setFreeText}
+            placeholder="Optional — whatever feels important"
+            multiline
+            textAlignVertical="top"
+          />
+          <Text variant="footnote" color="textTertiary">
+            This information is encrypted at rest and readable only by the person who matches you
+            by hand. It is never shared with your match directly — it helps us understand who to
+            connect you with.
+          </Text>
+        </>
+      ),
+    },
+  ];
+
+  const current = steps[step];
+  const isLast = step === steps.length - 1;
+  const next = () => {
+    haptics.select();
+    if (isLast) handleSubmit();
+    else setStep(step + 1);
+  };
+
+  return (
+    <Screen
+      underHeader
+      footer={
+        <>
+          <Button
+            title={isLast ? (isEdit ? "Save changes" : "Submit") : "Continue"}
+            block
+            loading={loading}
+            disabled={current.required && !current.answered}
+            onPress={next}
+          />
+          {!current.required && !current.answered && !isLast && (
+            <Button title="Skip" variant="quiet" block onPress={() => setStep(step + 1)} />
+          )}
+        </>
+      }
+    >
+      <View style={styles.progressRow}>
+        <View
+          style={[styles.track, { backgroundColor: color.surfaceSunken }]}
+          accessibilityRole="progressbar"
+          accessibilityLabel={`Question ${step + 1} of ${steps.length}`}
+        >
+          <View
+            style={[
+              styles.fill,
+              {
+                backgroundColor: color.accent,
+                width: `${((step + 1) / steps.length) * 100}%`,
+              },
+            ]}
           />
         </View>
+        <Text variant="caption" color="textTertiary">
+          {step + 1} of {steps.length}
+        </Text>
+      </View>
+
+      {step > 0 && (
+        <Pressable
+          onPress={() => setStep(step - 1)}
+          accessibilityRole="button"
+          hitSlop={12}
+          style={styles.back}
+        >
+          <Text variant="subheadMedium" color="accent">
+            Previous question
+          </Text>
+        </Pressable>
       )}
 
-      {/* Manner of death */}
-      <PillSelect
-        label="How did they die?"
-        options={MANNER}
-        value={manner}
-        onSelect={setManner}
-      />
-
-      {/* Suddenness */}
-      <PillSelect
-        label="Was it sudden or gradual?"
-        options={SUDDENNESS}
-        value={suddenness}
-        onSelect={setSuddenness}
-      />
-
-      {/* Age of the person */}
-      <View style={styles.field}>
-        <Text style={styles.label}>How old were they?</Text>
-        <TextInput
-          style={styles.textInput}
-          value={deceasedAge}
-          onChangeText={setDeceasedAge}
-          placeholder="e.g. 24, or 'early 20s'"
-          placeholderTextColor="#A8A29E"
-        />
+      <View key={step} style={styles.body}>
+        {current.body}
       </View>
+    </Screen>
+  );
+}
 
-      {/* Time since */}
-      <View style={styles.field}>
-        <Text style={styles.label}>How long has it been?</Text>
-        <View style={styles.pills}>
-          {TIME_OPTIONS.map((opt) => (
-            <TouchableOpacity
-              key={opt}
-              style={[styles.pill, timeSince === opt && styles.pillSelected]}
-              onPress={() => setTimeSince(opt)}
-            >
-              <Text
-                style={[
-                  styles.pillText,
-                  timeSince === opt && styles.pillTextSelected,
-                ]}
-              >
-                {opt}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Match preference */}
-      <View style={styles.field}>
-        <Text style={styles.label}>Matching preference</Text>
-        {MATCH_PREFS.map((opt) => (
-          <TouchableOpacity
-            key={opt.value}
-            style={[
-              styles.matchCard,
-              matchPref === opt.value && styles.matchCardSelected,
-            ]}
-            onPress={() => setMatchPref(opt.value)}
-          >
-            <Text
-              style={[
-                styles.matchCardTitle,
-                matchPref === opt.value && styles.matchCardTitleSelected,
-              ]}
-            >
-              {opt.label}
-            </Text>
-            <Text style={styles.matchCardDesc}>{opt.desc}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Pace — optional */}
-      <PillSelect
-        label="How often would you like to talk?"
-        options={TALK_FREQUENCY}
-        value={talkFrequency}
-        onSelect={(v) => setTalkFrequency(talkFrequency === v ? null : v)}
-      />
-
-      {/* Topics to avoid — optional */}
-      <View style={styles.field}>
-        <Text style={styles.label}>
-          {"Anything you'd rather not talk about?"}
-        </Text>
-        <Text style={styles.hint}>
-          {"Optional. We'll keep it in mind when choosing your match. Your match doesn't see your answers here, so let them know too if you'd like."}
-        </Text>
-        <TextInput
-          style={[styles.textInput, styles.textArea]}
-          value={avoidTopics}
-          onChangeText={setAvoidTopics}
-          placeholder="e.g. religion, how they died, the funeral"
-          placeholderTextColor="#A8A29E"
-          multiline
-          numberOfLines={3}
-          maxLength={1000}
-          textAlignVertical="top"
-        />
-      </View>
-
-      {/* Financial strain — optional, never inferred */}
-      <View style={styles.field}>
-        <Text style={styles.label}>
-          Is financial strain part of what you're navigating?
-        </Text>
-        <Text style={styles.hint}>
-          Some people want to match on this. Totally optional — never assumed
-          from anything else.
-        </Text>
-        <View style={styles.pills}>
-          <TouchableOpacity
-            style={[styles.pill, financialStrain === true && styles.pillSelected]}
-            onPress={() => setFinancialStrain(true)}
-          >
-            <Text
-              style={[
-                styles.pillText,
-                financialStrain === true && styles.pillTextSelected,
-              ]}
-            >
-              Yes
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.pill, financialStrain === false && styles.pillSelected]}
-            onPress={() => setFinancialStrain(false)}
-          >
-            <Text
-              style={[
-                styles.pillText,
-                financialStrain === false && styles.pillTextSelected,
-              ]}
-            >
-              No
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.pill, financialStrain === null && styles.pillSelected]}
-            onPress={() => setFinancialStrain(null)}
-          >
-            <Text
-              style={[
-                styles.pillText,
-                financialStrain === null && styles.pillTextSelected,
-              ]}
-            >
-              Skip
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Free text */}
-      <View style={styles.field}>
-        <Text style={styles.label}>
-          Anything else you want a match to know?
-        </Text>
-        <TextInput
-          style={[styles.textInput, styles.textArea]}
-          value={freeText}
-          onChangeText={setFreeText}
-          placeholder="Optional — whatever feels important"
-          placeholderTextColor="#A8A29E"
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-        />
-      </View>
-
-      {/* Submit */}
-      <TouchableOpacity
-        style={[styles.submitButton, loading && styles.submitDisabled]}
-        onPress={handleSubmit}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.submitText}>{isEdit ? "Save changes" : "Submit"}</Text>
-        )}
-      </TouchableOpacity>
-
-      <Text style={styles.footer}>
-        This information is encrypted at rest and readable only by the person
-        who matches you by hand. It is never shared with your match directly — it
-        helps us understand who to connect you with.
+function Question({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <View style={styles.question}>
+      <Text variant="title2" accessibilityRole="header">
+        {title}
       </Text>
-    </ScrollView>
+      {hint && (
+        <Text variant="callout" color="textSecondary">
+          {hint}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+function ChoiceCard({
+  title,
+  body,
+  selected,
+  onPress,
+}: {
+  title: string;
+  body: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const { color } = useTheme();
+  return (
+    <Pressable
+      onPress={() => {
+        haptics.select();
+        onPress();
+      }}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: selected
+            ? color.accentSoft
+            : pressed
+              ? color.surfaceSunken
+              : color.surface,
+          borderColor: selected ? color.accent : color.hairline,
+        },
+      ]}
+    >
+      <View style={styles.cardText}>
+        <Text variant="headline" color={selected ? "accent" : "text"}>
+          {title}
+        </Text>
+        <Text variant="subhead" color="textSecondary">
+          {body}
+        </Text>
+      </View>
+      {selected && <Icon name="check" size={18} color={color.accent} />}
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FAFAF9",
-  },
-  scroll: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 48,
-  },
-  intro: {
-    fontSize: 15,
-    color: "#78716C",
-    lineHeight: 22,
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  field: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1C1917",
-    marginBottom: 10,
-  },
-  hint: {
-    fontSize: 13,
-    color: "#A8A29E",
-    marginBottom: 10,
-    lineHeight: 18,
-  },
-  pills: {
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: space.md },
+  track: { flex: 1, height: 4, borderRadius: radius.sm, overflow: "hidden" },
+  fill: { height: 4, borderRadius: radius.sm },
+  back: { alignSelf: "flex-start" },
+  body: { gap: space.lg },
+  question: { gap: space.sm, marginBottom: space.xs },
+  subQuestion: { marginTop: space.md },
+  choices: { gap: space.sm },
+  card: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  pill: {
-    borderWidth: 1,
-    borderColor: "#D6D3D1",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-  },
-  pillSelected: {
-    backgroundColor: "#1C1917",
-    borderColor: "#1C1917",
-  },
-  pillText: {
-    fontSize: 15,
-    color: "#44403C",
-  },
-  pillTextSelected: {
-    color: "#fff",
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: "#D6D3D1",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: "#1C1917",
-    backgroundColor: "#fff",
-  },
-  textArea: {
-    minHeight: 100,
-  },
-  matchCard: {
-    borderWidth: 1,
-    borderColor: "#D6D3D1",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    backgroundColor: "#fff",
-  },
-  matchCardSelected: {
-    borderColor: "#1C1917",
-    backgroundColor: "#1C1917",
-  },
-  matchCardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1C1917",
-    marginBottom: 4,
-  },
-  matchCardTitleSelected: {
-    color: "#fff",
-  },
-  matchCardDesc: {
-    fontSize: 14,
-    color: "#57534E",
-    lineHeight: 20,
-  },
-  submitButton: {
-    backgroundColor: "#1C1917",
-    borderRadius: 12,
-    paddingVertical: 16,
     alignItems: "center",
-    marginTop: 8,
+    gap: space.md,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: space.lg,
   },
-  submitDisabled: {
-    opacity: 0.5,
-  },
-  submitText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  footer: {
-    fontSize: 13,
-    color: "#A8A29E",
-    lineHeight: 18,
-    marginTop: 20,
-    textAlign: "center",
-    paddingHorizontal: 8,
-  },
+  cardText: { flex: 1, gap: space.xxs },
 });

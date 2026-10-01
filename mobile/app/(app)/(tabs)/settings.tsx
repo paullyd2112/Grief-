@@ -1,25 +1,31 @@
 import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
-  Switch,
-} from "react-native";
+import { Alert, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../../src/hooks/useAuth";
 import { useProfile } from "../../../src/hooks/useProfile";
 import { supabase } from "../../../src/lib/supabase";
 import { getShowRightAway, setShowRightAway } from "../../../src/lib/media";
+import {
+  Avatar,
+  BottomSheet,
+  Button,
+  LargeTitleHeader,
+  ListGroup,
+  ListRow,
+  Text,
+  TextField,
+} from "../../../src/components/ui";
+import { gutter, space, useTheme } from "../../../src/theme";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { profile, refetch } = useProfile(user?.id);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { color } = useTheme();
   const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showMedia, setShowMedia] = useState(false);
 
@@ -31,7 +37,7 @@ export default function SettingsScreen() {
     if (!user || nameDraft === null) return;
     const name = nameDraft.trim();
     if (name.length < 2 || name.length > 32) {
-      Alert.alert("Name must be between 2 and 32 characters.");
+      setNameError("Name must be between 2 and 32 characters.");
       return;
     }
     setSaving(true);
@@ -47,6 +53,12 @@ export default function SettingsScreen() {
     await refetch();
     setNameDraft(null);
   };
+
+  const confirmSignOut = () =>
+    Alert.alert("Sign out?", "You can sign back in anytime.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Sign out", style: "destructive", onPress: signOut },
+    ]);
 
   const confirmDeleteAccount = () => {
     Alert.alert(
@@ -70,296 +82,142 @@ export default function SettingsScreen() {
     );
   };
 
+  const name = profile?.display_name ?? "";
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.label}>Display name</Text>
-          {nameDraft === null ? (
-            <TouchableOpacity onPress={() => setNameDraft(profile?.display_name ?? "")}>
-              <Text style={styles.editLink}>Edit</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={() => setNameDraft(null)} disabled={saving}>
-              <Text style={styles.editLink}>Cancel</Text>
-            </TouchableOpacity>
-          )}
+    <View style={[styles.fill, { backgroundColor: color.background }]}>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: insets.top + space.sm, paddingBottom: space.huge }}
+      >
+        <LargeTitleHeader title="You" />
+
+        <View style={styles.profile}>
+          {user && <Avatar seed={user.id} name={name} size={64} />}
+          <View style={styles.profileText}>
+            <Text variant="title2" numberOfLines={1}>
+              {name || "—"}
+            </Text>
+            <Text variant="subhead" color="textSecondary" numberOfLines={1}>
+              {user?.email ?? ""}
+            </Text>
+          </View>
         </View>
-        {nameDraft === null ? (
-          <Text style={styles.value}>{profile?.display_name ?? "—"}</Text>
-        ) : (
-          <View style={styles.editRow}>
-            <TextInput
-              style={styles.nameInput}
-              value={nameDraft}
-              onChangeText={setNameDraft}
-              autoFocus
-              autoCapitalize="words"
-              maxLength={32}
-              returnKeyType="done"
-              onSubmitEditing={saveName}
-              editable={!saving}
+
+        <ListGroup header="Account">
+          <ListRow
+            title="Display name"
+            trailing={name}
+            chevron
+            onPress={() => {
+              setNameError(null);
+              setNameDraft(name);
+            }}
+          />
+          <ListRow
+            title="Password"
+            chevron
+            onPress={() => router.push("/(app)/password")}
+          />
+        </ListGroup>
+
+        {profile?.guidelines_accepted_at && (
+          <ListGroup header="Matching">
+            <ListRow
+              title="Update your intake"
+              subtitle="If your situation or preferences have changed"
+              subtitleLines={2}
+              chevron
+              onPress={() => router.push("/(app)/intake")}
             />
-            <TouchableOpacity
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-              onPress={saveName}
-              disabled={saving}
-            >
-              <Text style={styles.saveButtonText}>{saving ? "..." : "Save"}</Text>
-            </TouchableOpacity>
-          </View>
+          </ListGroup>
         )}
-      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Account</Text>
-        <Text style={styles.value}>{user?.email ?? "—"}</Text>
-      </View>
+        <ListGroup
+          header="Conversations"
+          footer="Off: they open when you tap them, so you can choose when you're ready."
+        >
+          <ListRow
+            title="Show photos and videos right away"
+            titleLines={2}
+            trailing={
+              <Switch
+                value={showMedia}
+                onValueChange={(value) => {
+                  setShowMedia(value);
+                  setShowRightAway(value);
+                }}
+                trackColor={{ false: color.hairline, true: color.accentFill }}
+                accessibilityLabel="Show photos and videos right away"
+              />
+            }
+          />
+        </ListGroup>
 
-      {profile?.guidelines_accepted_at && (
-        <>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Matching</Text>
-          </View>
+        <ListGroup header="Support and safety">
+          <ListRow title="Crisis resources" chevron onPress={() => router.push("/(app)/crisis")} />
+          <ListRow
+            title="Community guidelines"
+            chevron
+            onPress={() => router.push("/(app)/guidelines")}
+          />
+          <ListRow title="Send feedback" chevron onPress={() => router.push("/(app)/feedback")} />
+        </ListGroup>
 
-          <TouchableOpacity
-            style={styles.linkRow}
-            onPress={() => router.push("/(app)/intake")}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.linkText}>Update your intake</Text>
-              <Text style={styles.linkSubtext}>
-                If your situation or preferences have changed
-              </Text>
-            </View>
-            <Text style={styles.linkArrow}>›</Text>
-          </TouchableOpacity>
-        </>
-      )}
+        <ListGroup header="Privacy">
+          <ListRow title="Your data" chevron onPress={() => router.push("/(app)/my-data")} />
+        </ListGroup>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Support & Safety</Text>
-      </View>
+        <ListGroup>
+          <ListRow title="Sign out" onPress={confirmSignOut} />
+        </ListGroup>
 
-      <TouchableOpacity
-        style={styles.linkRow}
-        onPress={() => router.push("/(app)/crisis")}
-      >
-        <Text style={styles.linkText}>Crisis resources</Text>
-        <Text style={styles.linkArrow}>›</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.linkRow}
-        onPress={() => router.push("/(app)/guidelines")}
-      >
-        <Text style={styles.linkText}>Community guidelines</Text>
-        <Text style={styles.linkArrow}>›</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.linkRow}
-        onPress={() => router.push("/(app)/feedback")}
-      >
-        <Text style={styles.linkText}>Send feedback</Text>
-        <Text style={styles.linkArrow}>›</Text>
-      </TouchableOpacity>
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Privacy</Text>
-      </View>
-
-      <TouchableOpacity
-        style={styles.linkRow}
-        onPress={() => router.push("/(app)/my-data")}
-      >
-        <Text style={styles.linkText}>Your data</Text>
-        <Text style={styles.linkArrow}>›</Text>
-      </TouchableOpacity>
-
-      <View style={styles.linkRow}>
-        <View style={{ flex: 1, paddingRight: 12 }}>
-          <Text style={styles.linkText}>Show photos and videos right away</Text>
-          <Text style={styles.linkSubtext}>
-            Off: they open when you tap them, so you can choose when you&apos;re ready.
+        <View style={styles.bottom}>
+          <Button title="Delete account" variant="quiet" onPress={confirmDeleteAccount} />
+          <Text variant="footnote" color="textTertiary" align="center">
+            {"If you're in crisis, call or text 988."}
           </Text>
         </View>
-        <Switch
-          value={showMedia}
-          onValueChange={(value) => {
-            setShowMedia(value);
-            setShowRightAway(value);
-          }}
-        />
-      </View>
+      </ScrollView>
 
-      <TouchableOpacity
-        style={styles.linkRow}
-        onPress={() => router.push("/(app)/password")}
+      <BottomSheet
+        visible={nameDraft !== null}
+        onClose={() => setNameDraft(null)}
+        title="Display name"
       >
-        <Text style={styles.linkText}>Password</Text>
-        <Text style={styles.linkArrow}>›</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.dangerButton}
-        onPress={() =>
-          Alert.alert(
-            "Sign out?",
-            "You can sign back in anytime.",
-            [
-              { text: "Cancel", style: "cancel" },
-              { text: "Sign out", style: "destructive", onPress: signOut },
-            ]
-          )
-        }
-      >
-        <Text style={styles.dangerText}>Sign out</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.deleteButton} onPress={confirmDeleteAccount}>
-        <Text style={styles.deleteText}>Delete account</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.footer}>
-        If you're in crisis, call or text 988.
-      </Text>
-    </ScrollView>
+        <View style={styles.sheet}>
+          <TextField
+            label="What should people call you?"
+            value={nameDraft ?? ""}
+            onChangeText={(text) => {
+              setNameDraft(text);
+              if (nameError) setNameError(null);
+            }}
+            autoFocus
+            autoCapitalize="words"
+            maxLength={32}
+            returnKeyType="done"
+            onSubmitEditing={saveName}
+            editable={!saving}
+            error={nameError}
+            helper="Your real name or one you make up. It doesn't affect matching."
+          />
+          <Button title="Save" block loading={saving} onPress={saveName} />
+        </View>
+      </BottomSheet>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E7E5E4",
-  },
-  label: {
-    fontSize: 13,
-    color: "#78716C",
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 17,
-    color: "#1C1917",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  editLink: {
-    fontSize: 14,
-    color: "#3B82F6",
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  editRow: {
+  fill: { flex: 1 },
+  profile: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: space.lg,
+    paddingHorizontal: gutter,
+    paddingBottom: space.xxl,
   },
-  nameInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#D6D3D1",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 17,
-    color: "#1C1917",
-  },
-  saveButton: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  saveButtonDisabled: {
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  deleteButton: {
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  deleteText: {
-    color: "#DC2626",
-    fontSize: 15,
-  },
-  sectionHeader: {
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#78716C",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  linkRow: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#E7E5E4",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  linkText: {
-    fontSize: 16,
-    color: "#1C1917",
-  },
-  linkSubtext: {
-    fontSize: 13,
-    color: "#78716C",
-    marginTop: 2,
-  },
-  linkArrow: {
-    fontSize: 20,
-    color: "#A8A29E",
-  },
-  dangerButton: {
-    borderWidth: 1,
-    borderColor: "#FCA5A5",
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 28,
-  },
-  dangerText: {
-    color: "#DC2626",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  footer: {
-    textAlign: "center",
-    color: "#A8A29E",
-    fontSize: 13,
-    marginTop: 32,
-  },
+  profileText: { flex: 1, gap: space.xxs },
+  bottom: { alignItems: "center", gap: space.lg, paddingHorizontal: gutter },
+  sheet: { gap: space.lg },
 });

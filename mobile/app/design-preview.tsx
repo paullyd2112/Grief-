@@ -2,7 +2,7 @@
 // with sample data so they can be screenshotted for review before the real
 // screens change. Development builds only (see app/_layout.tsx).
 //
-//   /design-preview?state=new | waiting | active | support | chat | components
+//   /design-preview?state=new | waiting | active | support | chat | worried | components
 //                  &accent=ink | spruce | plum
 
 import { useState } from "react";
@@ -26,6 +26,7 @@ import {
   groupSpacing,
 } from "../src/components/chat/ChatParts";
 import { MediaBubble } from "../src/components/MediaBubble";
+import { WorriedSheet } from "../src/components/WorriedSheet";
 import type { Message } from "../src/lib/types";
 import {
   Avatar,
@@ -52,7 +53,7 @@ import {
   type AccentName,
 } from "../src/theme";
 
-type PreviewState = "new" | "waiting" | "active" | "support" | "chat" | "components";
+type PreviewState = "new" | "waiting" | "active" | "support" | "chat" | "worried" | "components";
 
 const conversations = [
   {
@@ -115,14 +116,22 @@ function PreviewScreen() {
       >
         {state === "components" ? (
           <ComponentKit />
-        ) : state === "chat" ? (
+        ) : state === "chat" || state === "worried" ? (
           <ChatMock />
         ) : (
           <HomeMock state={state} />
         )}
       </ScrollView>
-      {state === "chat" && <ComposerMock />}
-      {state !== "components" && state !== "chat" && <TabBarMock />}
+      {(state === "chat" || state === "worried") && <ComposerMock />}
+      {state !== "components" && state !== "chat" && state !== "worried" && <TabBarMock />}
+      <WorriedSheet
+        visible={state === "worried"}
+        partnerName="Maya"
+        conversationId="preview"
+        canMessage
+        onClose={() => {}}
+        onAddToMessage={() => {}}
+      />
     </View>
   );
 }

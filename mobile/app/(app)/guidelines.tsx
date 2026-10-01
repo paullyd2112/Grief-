@@ -1,8 +1,11 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking } from "react-native";
+import { useState } from "react";
+import { Alert, Linking, Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../src/hooks/useAuth";
 import { supabase } from "../../src/lib/supabase";
 import { CODE_OF_CONDUCT_URL } from "../../src/lib/config";
+import { Button, Screen, Text } from "../../src/components/ui";
+import { space, useTheme } from "../../src/theme";
 
 // A short summary of the Ndo Code of Conduct. Keep the two in step.
 const sections = [
@@ -47,13 +50,17 @@ const sections = [
 export default function GuidelinesScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const { color } = useTheme();
+  const [saving, setSaving] = useState(false);
 
   const acceptGuidelines = async () => {
     if (!user) return;
+    setSaving(true);
     const { error } = await supabase
       .from("profiles")
       .update({ guidelines_accepted_at: new Date().toISOString() })
       .eq("id", user.id);
+    setSaving(false);
 
     if (error) {
       Alert.alert("Something went wrong", "Please try again.");
@@ -63,84 +70,52 @@ export default function GuidelinesScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>Community guidelines</Text>
-      <Text style={styles.intro}>
-        {"Everyone on Ndo agrees to the Code of Conduct. Here's the short version. It exists to keep this a place where people can be honest about what they're carrying."}
-      </Text>
+    <Screen
+      underHeader
+      footer={
+        <Button title="I understand and agree" block loading={saving} onPress={acceptGuidelines} />
+      }
+    >
+      <View style={styles.intro}>
+        <Text variant="largeTitle" accessibilityRole="header">
+          Community guidelines
+        </Text>
+        <Text variant="callout" color="textSecondary">
+          {"Everyone on Ndo agrees to the Code of Conduct. Here's the short version. It exists to keep this a place where people can be honest about what they're carrying."}
+        </Text>
+      </View>
 
-      {sections.map((s) => (
-        <View key={s.title} style={styles.section}>
-          <Text style={styles.sectionTitle}>{s.title}</Text>
-          <Text style={styles.sectionBody}>{s.body}</Text>
+      {sections.map((s, i) => (
+        <View
+          key={s.title}
+          style={[
+            styles.section,
+            i > 0 && { borderTopColor: color.hairline, borderTopWidth: StyleSheet.hairlineWidth },
+          ]}
+        >
+          <Text variant="headline">{s.title}</Text>
+          <Text variant="body" color="textSecondary">
+            {s.body}
+          </Text>
         </View>
       ))}
 
-      {CODE_OF_CONDUCT_URL && (
-        <TouchableOpacity onPress={() => Linking.openURL(CODE_OF_CONDUCT_URL)}>
-          <Text style={styles.fullLink}>Read the full Code of Conduct</Text>
-        </TouchableOpacity>
+      {!!CODE_OF_CONDUCT_URL && (
+        <Pressable
+          onPress={() => Linking.openURL(CODE_OF_CONDUCT_URL)}
+          accessibilityRole="link"
+          hitSlop={8}
+        >
+          <Text variant="bodyMedium" color="accent">
+            Read the full Code of Conduct
+          </Text>
+        </Pressable>
       )}
-
-      <TouchableOpacity style={styles.acceptButton} onPress={acceptGuidelines}>
-        <Text style={styles.acceptText}>I understand and agree</Text>
-      </TouchableOpacity>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#1C1917",
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  intro: {
-    fontSize: 15,
-    color: "#57534E",
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1C1917",
-    marginBottom: 4,
-  },
-  sectionBody: {
-    fontSize: 15,
-    color: "#57534E",
-    lineHeight: 22,
-  },
-  fullLink: {
-    fontSize: 15,
-    color: "#3B82F6",
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  acceptButton: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 12,
-  },
-  acceptText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  intro: { gap: space.sm, marginBottom: space.sm },
+  section: { gap: space.xs, paddingTop: space.lg },
 });
