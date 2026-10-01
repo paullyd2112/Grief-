@@ -37,7 +37,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-stone-50">
-      <nav className="border-b border-stone-200 bg-white">
+      <nav className="border-b border-stone-200 bg-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
             <div className="flex items-center gap-8">
@@ -83,7 +83,7 @@ export default async function DashboardLayout({
                 >
                   Feedback
                   {!!unreadFeedback && (
-                    <span className="bg-blue-600 text-white text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none">
+                    <span className="bg-accent text-white text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none">
                       {unreadFeedback}
                     </span>
                   )}

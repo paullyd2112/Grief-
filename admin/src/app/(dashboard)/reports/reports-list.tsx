@@ -185,7 +185,7 @@ function JustifiedAction({
         }}
         disabled={!text.trim()}
         className={`${
-          danger ? "bg-red-600 hover:bg-red-700" : "bg-stone-900 hover:bg-stone-800"
+          danger ? "bg-red-600 hover:bg-red-700" : "bg-accent hover:bg-accent-hover"
         } text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 transition`}
       >
         {buttonLabel}
@@ -224,7 +224,7 @@ function ReportCard({
       className={`border rounded-xl p-4 ${
         isOpen
           ? "border-red-200 bg-red-50/30"
-          : "border-stone-200 bg-white"
+          : "border-stone-200 bg-stone-50"
       }`}
     >
       <div className="flex items-start justify-between mb-3">
@@ -442,7 +442,7 @@ export function ReportsList({ reports }: { reports: ReportRow[] }) {
           onClick={() => setTab("open")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
             tab === "open"
-              ? "bg-stone-900 text-white"
+              ? "bg-accent text-white"
               : "text-stone-600 hover:bg-stone-100"
           }`}
         >
@@ -452,7 +452,7 @@ export function ReportsList({ reports }: { reports: ReportRow[] }) {
           onClick={() => setTab("resolved")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
             tab === "resolved"
-              ? "bg-stone-900 text-white"
+              ? "bg-accent text-white"
               : "text-stone-600 hover:bg-stone-100"
           }`}
         >
