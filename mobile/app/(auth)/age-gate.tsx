@@ -1,18 +1,11 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, View } from "react-native";
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { useGate } from "../../src/hooks/useGate";
+import { Button, Screen, Text } from "../../src/components/ui";
+import { radius, space, useTheme } from "../../src/theme";
 
 /**
  * Age gate — one attempt, enforced by the database.
@@ -20,33 +13,41 @@ import { useGate } from "../../src/hooks/useGate";
  * The DOB is stored as entered (not just pass/fail) per DECISIONS.md D5.
  * Primary key on user_id means a second insert throws a unique violation —
  * the form cannot teach someone the right answer by letting them retry.
+ *
+ * Because there's only one try, Continue stays off until the person has
+ * actually chosen a date: an untouched picker must never be submitted.
  */
 export default function AgeGateScreen() {
   const { user, refreshGate } = useGate();
   const router = useRouter();
-  const [month, setMonth] = useState("");
-  const [day, setDay] = useState("");
-  const [year, setYear] = useState("");
+  const { color, scheme } = useTheme();
+  const today = new Date();
+  // A starting point for the wheels only; it's never submitted untouched.
+  const [date, setDate] = useState(
+    () => new Date(today.getFullYear() - 30, today.getMonth(), today.getDate())
+  );
+  const [chosen, setChosen] = useState(false);
+  const [showAndroidPicker, setShowAndroidPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!user) return;
-
-    const m = parseInt(month, 10);
-    const d = parseInt(day, 10);
-    const y = parseInt(year, 10);
-
-    if (!m || !d || !y || m < 1 || m > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) {
-      Alert.alert("Please enter a valid date of birth.");
-      return;
+  const onChange = (event: DateTimePickerEvent, picked?: Date) => {
+    if (Platform.OS === "android") setShowAndroidPicker(false);
+    if (event.type === "set" && picked) {
+      setDate(picked);
+      setChosen(true);
     }
+  };
 
+  const handleSubmit = async () => {
+    if (!user || !chosen) return;
+
+    const y = date.getFullYear();
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
     const dob = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    const birthDate = new Date(y, m - 1, d);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    let age = today.getFullYear() - y;
+    const monthDiff = today.getMonth() - date.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) {
       age--;
     }
 
@@ -75,148 +76,82 @@ export default function AgeGateScreen() {
     }
   };
 
+  const formatted = date.toLocaleDateString([], {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <Screen
+      footer={
+        <Button
+          title="Continue"
+          block
+          loading={loading}
+          disabled={!chosen}
+          onPress={handleSubmit}
+        />
+      }
     >
-      <View style={styles.content}>
-        <Text style={styles.title}>Before we start</Text>
-        <Text style={styles.subtitle}>
+      <View style={styles.intro}>
+        <Text variant="title1" accessibilityRole="header">
+          Before we start
+        </Text>
+        <Text variant="callout" color="textSecondary">
           Ndo is for adults 18 and older. Please enter your date of birth.
         </Text>
-
-        <View style={styles.row}>
-          <View style={styles.fieldSmall}>
-            <Text style={styles.label}>Month</Text>
-            <TextInput
-              style={styles.input}
-              value={month}
-              onChangeText={setMonth}
-              placeholder="MM"
-              placeholderTextColor="#A8A29E"
-              keyboardType="number-pad"
-              maxLength={2}
-              returnKeyType="next"
-            />
-          </View>
-          <View style={styles.fieldSmall}>
-            <Text style={styles.label}>Day</Text>
-            <TextInput
-              style={styles.input}
-              value={day}
-              onChangeText={setDay}
-              placeholder="DD"
-              placeholderTextColor="#A8A29E"
-              keyboardType="number-pad"
-              maxLength={2}
-              returnKeyType="next"
-            />
-          </View>
-          <View style={styles.fieldLarge}>
-            <Text style={styles.label}>Year</Text>
-            <TextInput
-              style={styles.input}
-              value={year}
-              onChangeText={setYear}
-              placeholder="YYYY"
-              placeholderTextColor="#A8A29E"
-              keyboardType="number-pad"
-              maxLength={4}
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-            />
-          </View>
-        </View>
-
-        <Text style={styles.note}>
-          You can only enter this once. We store the date you entered, not just
-          whether you passed.
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Continue</Text>
-          )}
-        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+
+      {Platform.OS === "ios" ? (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display="spinner"
+          maximumDate={today}
+          minimumDate={new Date(1900, 0, 1)}
+          onChange={onChange}
+          themeVariant={scheme}
+          textColor={color.text}
+          style={styles.wheels}
+        />
+      ) : (
+        <>
+          <Pressable
+            onPress={() => setShowAndroidPicker(true)}
+            accessibilityRole="button"
+            style={[styles.field, { backgroundColor: color.surfaceSunken }]}
+          >
+            <Text variant="body" color={chosen ? "text" : "textTertiary"}>
+              {chosen ? formatted : "Choose your date of birth"}
+            </Text>
+          </Pressable>
+          {showAndroidPicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              maximumDate={today}
+              minimumDate={new Date(1900, 0, 1)}
+              onChange={onChange}
+            />
+          )}
+        </>
+      )}
+
+      <Text variant="footnote" color="textTertiary">
+        You can only enter this once. We store the date you entered, not just
+        whether you passed.
+      </Text>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#1C1917",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#57534E",
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  row: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
-  },
-  fieldSmall: {
-    flex: 1,
-  },
-  fieldLarge: {
-    flex: 1.5,
-  },
-  label: {
-    fontSize: 13,
-    color: "#78716C",
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D6D3D1",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 18,
-    color: "#1C1917",
-    backgroundColor: "#fff",
-    textAlign: "center",
-  },
-  note: {
-    fontSize: 13,
-    color: "#A8A29E",
-    marginBottom: 24,
-    lineHeight: 18,
-  },
-  button: {
-    backgroundColor: "#1C1917",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
+  intro: { gap: space.sm },
+  wheels: { alignSelf: "stretch" },
+  field: {
+    borderRadius: radius.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
   },
 });

@@ -59,7 +59,8 @@
         }
       ],
       "expo-asset",
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

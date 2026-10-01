@@ -1,17 +1,26 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Button, Screen, Text, TextField } from "../../src/components/ui";
+import { fonts, space, useTheme } from "../../src/theme";
 import { useAuth } from "../../src/hooks/useAuth";
 
+function TextLink({ title, onPress }: { title: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      hitSlop={8}
+      style={({ pressed }) => [styles.link, pressed && { opacity: 0.6 }]}
+    >
+      <Text variant="subhead" color="textSecondary" align="center">
+        {title}
+      </Text>
+    </Pressable>
+  );
+}
+
 export default function LoginScreen() {
+  const { color } = useTheme();
   const { signInWithOtp, verifyOtp, signInWithPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -69,213 +78,111 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <Screen
+      centered
+      footer={
+        <Text variant="footnote" color="textTertiary" align="center">
+          {"Not therapy. If you're in crisis, call or text 988."}
+        </Text>
+      }
     >
-      <View style={styles.content}>
-        <Text style={styles.title}>Ndo</Text>
-        <Text style={styles.subtitle}>
+      {/* The brand moment: the wordmark and one line, nothing else. */}
+      <View style={styles.brand}>
+        <Text variant="display" accessibilityRole="header">
+          Ndo
+        </Text>
+        <Text style={[styles.tagline, { color: color.textSecondary }]}>
           Talk to someone who actually understands.
         </Text>
-
-        {step === "email" ? (
-          <>
-            <Text style={styles.label}>Your email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor="#A8A29E"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="go"
-              onSubmitEditing={handleSendOtp}
-            />
-            <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
-              onPress={handleSendOtp}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Continue</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.backButton} onPress={() => switchTo("password")}>
-              <Text style={styles.backText}>Sign in with a password</Text>
-            </TouchableOpacity>
-          </>
-        ) : step === "password" ? (
-          <>
-            <Text style={styles.label}>Your email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor="#A8A29E"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="username"
-              autoComplete="email"
-              returnKeyType="next"
-            />
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Your password"
-              placeholderTextColor="#A8A29E"
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="password"
-              autoComplete="current-password"
-              returnKeyType="go"
-              onSubmitEditing={handlePasswordSignIn}
-            />
-            <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
-              onPress={handlePasswordSignIn}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Sign in</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.backButton} onPress={() => switchTo("email")}>
-              <Text style={styles.backText}>Forgot it? Email me a code instead</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <Text style={styles.label}>
-              We sent a code to {email}
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={otp}
-              onChangeText={setOtp}
-              placeholder="Enter your code"
-              placeholderTextColor="#A8A29E"
-              keyboardType="number-pad"
-              autoFocus
-              returnKeyType="go"
-              onSubmitEditing={handleVerify}
-            />
-            <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
-              onPress={handleVerify}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Verify</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                setStep("email");
-                setOtp("");
-                setError(null);
-              }}
-            >
-              <Text style={styles.backText}>Use a different email</Text>
-            </TouchableOpacity>
-          </>
-        )}
-
-        {error && <Text style={styles.error}>{error}</Text>}
       </View>
 
-      <Text style={styles.footer}>
-        Not therapy. If you're in crisis, call or text 988.
-      </Text>
-    </KeyboardAvoidingView>
+      {step === "email" ? (
+        <View style={styles.form}>
+          <TextField
+            label="Your email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+            textContentType="emailAddress"
+            returnKeyType="go"
+            onSubmitEditing={handleSendOtp}
+          />
+          <Button title="Continue" block loading={loading} onPress={handleSendOtp} />
+          <TextLink title="Sign in with a password" onPress={() => switchTo("password")} />
+        </View>
+      ) : step === "password" ? (
+        <View style={styles.form}>
+          <TextField
+            label="Your email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="username"
+            autoComplete="email"
+            returnKeyType="next"
+          />
+          <TextField
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="password"
+            autoComplete="current-password"
+            returnKeyType="go"
+            onSubmitEditing={handlePasswordSignIn}
+          />
+          <Button title="Sign in" block loading={loading} onPress={handlePasswordSignIn} />
+          <TextLink title="Forgot it? Email me a code instead" onPress={() => switchTo("email")} />
+        </View>
+      ) : (
+        <View style={styles.form}>
+          <TextField
+            label="Your code"
+            helper={`We sent it to ${email}`}
+            value={otp}
+            onChangeText={setOtp}
+            placeholder="6-digit code"
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="one-time-code"
+            autoFocus
+            returnKeyType="go"
+            onSubmitEditing={handleVerify}
+          />
+          <Button title="Verify" block loading={loading} onPress={handleVerify} />
+          <TextLink
+            title="Use a different email"
+            onPress={() => {
+              setStep("email");
+              setOtp("");
+              setError(null);
+            }}
+          />
+        </View>
+      )}
+
+      {error && (
+        <Text variant="footnote" color="danger" align="center">
+          {error}
+        </Text>
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: "700",
-    color: "#1C1917",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: "#57534E",
-    marginBottom: 40,
-    lineHeight: 26,
-  },
-  label: {
-    fontSize: 15,
-    color: "#44403C",
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D6D3D1",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 17,
-    color: "#1C1917",
-    backgroundColor: "#fff",
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: "#1C1917",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  backButton: {
-    marginTop: 16,
-    alignItems: "center",
-  },
-  backText: {
-    color: "#78716C",
-    fontSize: 15,
-  },
-  error: {
-    color: "#DC2626",
-    fontSize: 14,
-    marginTop: 16,
-    textAlign: "center",
-  },
-  footer: {
-    textAlign: "center",
-    color: "#A8A29E",
-    fontSize: 13,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-  },
+  brand: { gap: space.sm, marginBottom: space.xxl },
+  // Instrument Serif's own italic, not a slanted regular.
+  tagline: { fontFamily: fonts.serifItalic, fontSize: 24, lineHeight: 30 },
+  form: { gap: space.lg },
+  link: { paddingVertical: space.xs },
 });
