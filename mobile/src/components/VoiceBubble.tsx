@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { supabase } from "../lib/supabase";
+import { radius, space, type as typeScale, useTheme } from "../theme";
+import { Icon, Text } from "./ui";
 
 function formatDuration(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -10,18 +12,21 @@ function formatDuration(ms: number): string {
   return `${min}:${sec.toString().padStart(2, "0")}`;
 }
 
+// A voice memo: play/pause, progress, length. Playback only, never saved.
 export function VoiceBubble({
   voiceMemoId,
   isOwn,
-  timestamp,
+  groupEnd = true,
   onLongPress,
 }: {
   voiceMemoId: string;
   isOwn: boolean;
-  timestamp: string;
+  // Last bubble of a run gets the tail (see chat/ChatParts.tsx).
+  groupEnd?: boolean;
   // Unsend (your own) or report (theirs); handled by the conversation screen.
   onLongPress?: () => void;
 }) {
+  const { color } = useTheme();
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [storedDurationMs, setStoredDurationMs] = useState(0);
 
@@ -67,107 +72,53 @@ export function VoiceBubble({
     player.play();
   };
 
+  const ink = isOwn ? color.bubbleOwnText : color.bubbleTheirsText;
+
   return (
-    <View
-      style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleTheirs]}
+    <Pressable
+      onPress={handlePress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      accessibilityRole="button"
+      accessibilityLabel={`Voice memo, ${formatDuration(durationSec * 1000)}. ${isPlaying ? "Pause" : "Play"}.`}
+      style={[
+        styles.bubble,
+        isOwn ? styles.own : styles.theirs,
+        { backgroundColor: isOwn ? color.bubbleOwn : color.bubbleTheirs },
+        groupEnd && (isOwn ? styles.tailOwn : styles.tailTheirs),
+      ]}
     >
-      <TouchableOpacity onPress={handlePress} onLongPress={onLongPress} style={styles.row}>
-        <Text style={[styles.playIcon, isOwn ? styles.textOwn : styles.textTheirs]}>
-          {isPlaying ? "⏸" : "▶"}
-        </Text>
-        <View style={styles.waveformContainer}>
-          <View style={styles.waveformTrack}>
-            <View
-              style={[
-                styles.waveformProgress,
-                { width: `${progress * 100}%` },
-                isOwn ? styles.progressOwn : styles.progressTheirs,
-              ]}
-            />
-          </View>
-          <Text
-            style={[styles.duration, isOwn ? styles.textOwn : styles.textTheirs]}
-          >
-            {isPlaying
-              ? formatDuration(currentPosition * 1000)
-              : formatDuration(durationSec * 1000)}
-          </Text>
-        </View>
-      </TouchableOpacity>
-      <Text style={[styles.timestamp, isOwn ? styles.tsOwn : styles.tsTheirs]}>
-        {new Date(timestamp).toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-        })}
+      <Icon name={isPlaying ? "pause" : "play"} size={18} color={ink} />
+      <View style={styles.track}>
+        <View style={[styles.trackBg, { backgroundColor: ink, opacity: 0.25 }]} />
+        <View style={[styles.trackFill, { backgroundColor: ink, width: `${progress * 100}%` }]} />
+      </View>
+      <Text style={[typeScale.footnote, styles.duration, { color: ink }]}>
+        {isPlaying
+          ? formatDuration(currentPosition * 1000)
+          : formatDuration(durationSec * 1000)}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   bubble: {
+    width: 230,
     maxWidth: "80%",
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginVertical: 2,
-  },
-  bubbleOwn: {
-    backgroundColor: "#3B82F6",
-    alignSelf: "flex-end",
-    borderBottomRightRadius: 4,
-  },
-  bubbleTheirs: {
-    backgroundColor: "#E5E7EB",
-    alignSelf: "flex-start",
-    borderBottomLeftRadius: 4,
-  },
-  row: {
+    borderRadius: radius.bubble,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: space.md,
   },
-  playIcon: {
-    fontSize: 18,
-  },
-  textOwn: {
-    color: "#FFFFFF",
-  },
-  textTheirs: {
-    color: "#1C1917",
-  },
-  waveformContainer: {
-    flex: 1,
-    gap: 4,
-  },
-  waveformTrack: {
-    height: 4,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  waveformProgress: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  progressOwn: {
-    backgroundColor: "rgba(255,255,255,0.8)",
-  },
-  progressTheirs: {
-    backgroundColor: "#6B7280",
-  },
-  duration: {
-    fontSize: 12,
-  },
-  timestamp: {
-    fontSize: 11,
-    marginTop: 4,
-  },
-  tsOwn: {
-    color: "rgba(255,255,255,0.7)",
-    textAlign: "right",
-  },
-  tsTheirs: {
-    color: "#6B7280",
-  },
+  own: { alignSelf: "flex-end" },
+  theirs: { alignSelf: "flex-start" },
+  tailOwn: { borderBottomRightRadius: 6 },
+  tailTheirs: { borderBottomLeftRadius: 6 },
+  track: { flex: 1, height: 3, justifyContent: "center" },
+  trackBg: { position: "absolute", left: 0, right: 0, height: 3, borderRadius: 2 },
+  trackFill: { height: 3, borderRadius: 2 },
+  duration: { fontVariant: ["tabular-nums"] },
 });

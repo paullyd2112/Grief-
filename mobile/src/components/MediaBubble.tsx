@@ -48,10 +48,6 @@ export function MediaBubble({
     };
   }, [message.id, message.unsent_at]);
 
-  const time = new Date(message.created_at).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
   const align = isOwn ? styles.alignOwn : styles.alignTheirs;
 
   if (message.unsent_at) {
@@ -65,6 +61,10 @@ export function MediaBubble({
   const summary = attachments.length
     ? describeAttachments(attachments.map((a) => a.kind))
     : "Photo or video";
+  // For "Maya sent …": "a photo", "a video", "3 photos", "2 photos and a video".
+  const sentPhrase = /^(Photo|Video|Photo or video)$/.test(summary)
+    ? `a ${summary.toLowerCase()}`
+    : summary.charAt(0).toLowerCase() + summary.slice(1);
 
   const caption = message.body ? (
     <Text style={[typeScale.body, styles.caption, { color: color.text }]}>{message.body}</Text>
@@ -80,7 +80,7 @@ export function MediaBubble({
           }}
           onLongPress={onLongPress}
           accessibilityRole="button"
-          accessibilityLabel={`${partnerName} sent ${summary.toLowerCase()}. Tap to view.`}
+          accessibilityLabel={`${partnerName} sent ${sentPhrase}. Tap to view.`}
           style={({ pressed }) => [
             styles.card,
             { backgroundColor: color.surfaceSunken, borderColor: color.hairline },
@@ -88,7 +88,7 @@ export function MediaBubble({
           ]}
         >
           <Text style={[typeScale.subheadMedium, { color: color.text }]}>
-            {partnerName} sent {summary.toLowerCase()}
+            {partnerName} sent {sentPhrase}
           </Text>
           <Text style={[typeScale.footnote, { color: color.accent }]}>Tap to view</Text>
         </Pressable>
@@ -99,7 +99,6 @@ export function MediaBubble({
             see them.
           </Text>
         )}
-        <Text style={[styles.time, { color: color.textTertiary }]}>{time}</Text>
       </View>
     );
   }
@@ -145,7 +144,6 @@ export function MediaBubble({
         </View>
       </Pressable>
       {caption}
-      <Text style={[styles.time, { color: color.textTertiary }]}>{time}</Text>
 
       <MediaViewer
         key={viewerIndex ?? "closed"}
@@ -162,7 +160,6 @@ export function MediaBubble({
 const styles = StyleSheet.create({
   wrap: {
     maxWidth: "80%",
-    marginVertical: 4,
     gap: space.xs,
   },
   alignOwn: { alignSelf: "flex-end", alignItems: "flex-end" },
@@ -177,7 +174,6 @@ const styles = StyleSheet.create({
   },
   caption: { paddingHorizontal: space.xs },
   explainer: { maxWidth: 260, paddingHorizontal: space.xs },
-  time: { fontSize: 11, paddingHorizontal: space.xs },
   unsent: {
     fontStyle: "italic",
     fontSize: 13,

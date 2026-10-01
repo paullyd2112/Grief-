@@ -5,7 +5,6 @@
 
 import * as ImagePicker from "expo-image-picker";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
-import * as MediaLibrary from "expo-media-library";
 import { File, Paths } from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./supabase";
@@ -197,6 +196,9 @@ export async function loadAttachments(messageId: string): Promise<ViewableAttach
 // Only offered when the sender allowed it.
 export async function saveToPhotos(attachment: ViewableAttachment) {
   if (!attachment.url) throw new MediaError("Couldn't load it. Try again in a moment.");
+  // Loaded here rather than at the top: it's only needed for Save, and it has
+  // no web implementation (the design preview runs on web).
+  const MediaLibrary = await import("expo-media-library");
   const permission = await MediaLibrary.requestPermissionsAsync(true);
   if (!permission.granted) {
     throw new MediaError("Allow Ndo to add to your photo library in Settings, then try again.");

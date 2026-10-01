@@ -1,16 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
-  Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Alert,
+  ActionSheetIOS,
   ActivityIndicator,
-  Modal,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from "expo-router";
 import { setActiveConversation } from "../../../src/lib/notifications";
@@ -39,6 +38,15 @@ import {
 import { WorriedSheet } from "../../../src/components/WorriedSheet";
 import { supabase } from "../../../src/lib/supabase";
 import type { Message } from "../../../src/lib/types";
+import {
+  DaySeparator,
+  TextBubble,
+  UnsentLine,
+  buildChatItems,
+  groupSpacing,
+} from "../../../src/components/chat/ChatParts";
+import { Avatar, BottomSheet, Button, Icon, NoticeBanner, Text } from "../../../src/components/ui";
+import { minTapTarget, radius, space, type as typeScale, useTheme } from "../../../src/theme";
 
 function formatRecordingTime(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -51,17 +59,23 @@ function MessageBubble({
   message,
   isOwn,
   partnerName,
+  groupEnd,
+  showTime,
   showRightAway,
   showExplainer,
   onRevealed,
+  onPress,
   onLongPress,
 }: {
   message: Message;
   isOwn: boolean;
   partnerName: string;
+  groupEnd: boolean;
+  showTime: boolean;
   showRightAway: boolean;
   showExplainer: boolean;
   onRevealed: () => void;
+  onPress: () => void;
   onLongPress: () => void;
 }) {
   if (message.kind === "media") {
@@ -80,9 +94,10 @@ function MessageBubble({
 
   if (message.kind === "voice" && message.unsent_at) {
     return (
-      <Text style={[styles.unsentText, isOwn ? styles.unsentOwn : styles.unsentTheirs]}>
-        {isOwn ? "You unsent a voice memo" : `${partnerName} unsent a voice memo`}
-      </Text>
+      <UnsentLine
+        isOwn={isOwn}
+        text={isOwn ? "You unsent a voice memo" : `${partnerName} unsent a voice memo`}
+      />
     );
   }
 
@@ -91,37 +106,25 @@ function MessageBubble({
       <VoiceBubble
         voiceMemoId={message.voice_memo_id}
         isOwn={isOwn}
-        timestamp={message.created_at}
+        groupEnd={groupEnd}
         onLongPress={onLongPress}
       />
     );
   }
 
   return (
-    <View
-      style={[
-        styles.bubble,
-        isOwn ? styles.bubbleOwn : styles.bubbleTheirs,
-      ]}
-    >
-      <Text
-        style={[styles.bubbleText, isOwn ? styles.textOwn : styles.textTheirs]}
-      >
-        {message.body}
-      </Text>
-      <Text
-        style={[styles.timestamp, isOwn ? styles.tsOwn : styles.tsTheirs]}
-      >
-        {new Date(message.created_at).toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-        })}
-      </Text>
-    </View>
+    <TextBubble
+      message={message}
+      isOwn={isOwn}
+      groupEnd={groupEnd}
+      showTime={showTime}
+      onPress={onPress}
+      onLongPress={onLongPress}
+    />
   );
 }
 
-function ReportModal({
+function ReportSheet({
   visible,
   ended,
   onClose,
@@ -134,45 +137,68 @@ function ReportModal({
   onSubmit: (reason: string) => void;
   loading: boolean;
 }) {
+  const { color } = useTheme();
   const [reason, setReason] = useState("");
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Report this person</Text>
-          <Text style={styles.modalSubtitle}>
-            {ended
-              ? "This will block them. Your recent messages, including photos and videos, will be saved as a snapshot for review. You can also report something that happened outside the app."
-              : "This will block them and end the conversation. Your recent messages, including photos and videos, will be saved as a snapshot for review."}
-          </Text>
-
-          <TextInput
-            style={styles.reportInput}
-            placeholder="What happened? (optional)"
-            placeholderTextColor="#A8A29E"
-            value={reason}
-            onChangeText={setReason}
-            multiline
-            numberOfLines={3}
-          />
-
-          <TouchableOpacity
-            style={styles.reportButton}
-            onPress={() => onSubmit(reason)}
-            disabled={loading}
-          >
-            <Text style={styles.reportButtonText}>
-              {loading ? "Reporting..." : ended ? "Report" : "Report & leave"}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
+    <BottomSheet visible={visible} onClose={onClose} title="Report this person">
+      <View style={styles.sheetBody}>
+        <Text variant="callout" color="textSecondary">
+          {ended
+            ? "This will block them. Your recent messages, including photos and videos, will be saved as a snapshot for review. You can also report something that happened outside the app."
+            : "This will block them and end the conversation. Your recent messages, including photos and videos, will be saved as a snapshot for review."}
+        </Text>
+        <TextInput
+          style={[
+            typeScale.body,
+            styles.reportInput,
+            { backgroundColor: color.surfaceSunken, color: color.text },
+          ]}
+          placeholder="What happened? (optional)"
+          placeholderTextColor={color.textTertiary}
+          value={reason}
+          onChangeText={setReason}
+          multiline
+        />
+        <Button
+          title={ended ? "Report" : "Report and leave"}
+          variant="destructive"
+          block
+          loading={loading}
+          onPress={() => onSubmit(reason)}
+        />
+        <Button title="Cancel" variant="quiet" block onPress={onClose} />
       </View>
-    </Modal>
+    </BottomSheet>
+  );
+}
+
+function IconButton({
+  name,
+  label,
+  onPress,
+  disabled,
+}: {
+  name: "plus" | "mic";
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  const { color } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        styles.iconButton,
+        (pressed || disabled) && { opacity: 0.4 },
+      ]}
+    >
+      <Icon name={name} size={22} color={color.textSecondary} />
+    </Pressable>
   );
 }
 
@@ -183,6 +209,9 @@ export default function ConversationScreen() {
   const { info, loading: convLoading } = useConversation(id, user?.id);
   const { messages, loading: msgsLoading, sendMessage, markUnsent } = useMessages(id);
   const voice = useVoiceMemo(id);
+  const { color } = useTheme();
+  // The one message whose exact time is showing (tap a bubble to toggle).
+  const [timeFor, setTimeFor] = useState<string | null>(null);
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -473,207 +502,228 @@ export default function ConversationScreen() {
 
   if (convLoading || msgsLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1C1917" />
+      <View style={[styles.center, { backgroundColor: color.background }]}>
+        <ActivityIndicator color={color.textSecondary} />
       </View>
     );
   }
 
   if (!info) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Conversation not found</Text>
+      <View style={[styles.center, { backgroundColor: color.background }]}>
+        <Text variant="callout" color="textSecondary">
+          Conversation not found
+        </Text>
       </View>
     );
   }
+
+  const items = buildChatItems(messages);
+  const busy = sending || voice.uploading || mediaSending;
+
+  // "I'm worried about them" first, as the brief asks. Native sheet on iOS.
+  const openMenu = () => {
+    const actions: { label: string; destructive?: boolean; run: () => void }[] = [
+      { label: "I'm worried about them", run: () => setShowWorried(true) },
+      ...(isEnded ? [] : [{ label: "Leave conversation", run: handleLeave }]),
+      { label: "Block", destructive: true, run: handleBlock },
+      { label: "Report", destructive: true, run: () => setShowReport(true) },
+      { label: "Delete conversation", destructive: true, run: handleDelete },
+    ];
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: info.partnerName,
+          options: [...actions.map((a) => a.label), "Cancel"],
+          destructiveButtonIndex: actions
+            .map((a, i) => (a.destructive ? i : -1))
+            .filter((i) => i >= 0),
+          cancelButtonIndex: actions.length,
+        },
+        (index) => actions[index]?.run()
+      );
+      return;
+    }
+    Alert.alert(info.partnerName, undefined, [
+      ...actions.map((a) => ({
+        text: a.label,
+        style: a.destructive ? ("destructive" as const) : ("default" as const),
+        onPress: a.run,
+      })),
+      { text: "Cancel", style: "cancel" as const },
+    ]);
+  };
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: info.partnerName,
+          headerStyle: { backgroundColor: color.background },
+          headerShadowVisible: false,
+          headerTintColor: color.text,
+          headerTitle: () => (
+            <View style={styles.headerTitle}>
+              <Avatar seed={info.partnerId} name={info.partnerName} size={28} />
+              <Text variant="headline" numberOfLines={1}>
+                {info.partnerName}
+              </Text>
+            </View>
+          ),
           headerRight: () => (
             <View style={styles.headerActions}>
-              <TouchableOpacity onPress={() => router.push("/(app)/crisis")}>
-                <Text style={styles.headerHelp}>Get help</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  Alert.alert(info.partnerName, undefined, [
-                    {
-                      text: "I'm worried about them",
-                      onPress: () => setShowWorried(true),
-                    },
-                    ...(isEnded
-                      ? []
-                      : [
-                          {
-                            text: "Leave conversation",
-                            onPress: handleLeave,
-                          } as const,
-                        ]),
-                    {
-                      text: "Block",
-                      style: "destructive" as const,
-                      onPress: handleBlock,
-                    },
-                    {
-                      text: "Report",
-                      style: "destructive" as const,
-                      onPress: () => setShowReport(true),
-                    },
-                    {
-                      text: "Delete conversation",
-                      style: "destructive" as const,
-                      onPress: handleDelete,
-                    },
-                    { text: "Cancel", style: "cancel" as const },
-                  ]);
-                }}
+              <Pressable
+                onPress={() => router.push("/(app)/crisis")}
+                hitSlop={8}
+                accessibilityRole="button"
               >
-                <Text style={styles.headerAction}>···</Text>
-              </TouchableOpacity>
+                <Text variant="subhead" color="textSecondary">
+                  Get help
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={openMenu}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="More options"
+              >
+                <Icon name="more" size={22} color={color.text} />
+              </Pressable>
             </View>
           ),
         }}
       />
 
       <KeyboardAvoidingView
-        style={styles.container}
+        style={{ flex: 1, backgroundColor: color.background }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <FlatList
-          data={messages}
-          keyExtractor={(item) => item.id}
+          data={items}
+          keyExtractor={(item) => item.key}
           inverted
           contentContainerStyle={styles.messageList}
-          renderItem={({ item }) => (
-            <MessageBubble
-              message={item}
-              isOwn={item.sender_id === user?.id}
-              partnerName={info.partnerName}
-              showRightAway={showRightAway}
-              showExplainer={!explainerSeen}
-              onRevealed={handleExplainerSeen}
-              onLongPress={() => handleMessageLongPress(item)}
-            />
-          )}
+          renderItem={({ item }) =>
+            item.type === "separator" ? (
+              <DaySeparator label={item.label} />
+            ) : (
+              <View style={groupSpacing(item.groupStart)}>
+                <MessageBubble
+                  message={item.message}
+                  isOwn={item.message.sender_id === user?.id}
+                  partnerName={info.partnerName}
+                  groupEnd={item.groupEnd}
+                  showTime={timeFor === item.message.id}
+                  showRightAway={showRightAway}
+                  showExplainer={!explainerSeen}
+                  onRevealed={handleExplainerSeen}
+                  onPress={() =>
+                    setTimeFor((current) => (current === item.message.id ? null : item.message.id))
+                  }
+                  onLongPress={() => handleMessageLongPress(item.message)}
+                />
+              </View>
+            )
+          }
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                Say hello. They're going through something too.
+            // Inverted lists flip their empty state too; flip it back.
+            <View style={styles.empty}>
+              <Text variant="callout" color="textSecondary" align="center">
+                {"Say hello. They're going through something too."}
               </Text>
             </View>
           }
         />
 
         {contactWarningText && (
-          <View style={styles.contactWarning}>
-            <Text style={styles.contactWarningText}>
-              {"Just checking you mean to share this. It looks like contact info, and once it's sent they'll have it. Only share what you're comfortable with."}
-            </Text>
-            <View style={styles.contactWarningActions}>
-              <TouchableOpacity
-                onPress={() => setContactWarningText(null)}
-                style={styles.contactWarningBtn}
-              >
-                <Text style={styles.contactWarningBtnText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={confirmSendWithContact}
-                style={[styles.contactWarningBtn, styles.contactWarningSendBtn]}
-              >
-                <Text style={styles.contactWarningSendText}>Send</Text>
-              </TouchableOpacity>
+          <NoticeBanner
+            style={styles.banner}
+            body="Just checking you mean to share this. It looks like contact info, and once it's sent they'll have it. Only share what you're comfortable with."
+          >
+            <View style={styles.bannerActions}>
+              <Button title="Edit" variant="quiet" onPress={() => setContactWarningText(null)} />
+              <Button title="Send" onPress={confirmSendWithContact} />
             </View>
-          </View>
+          </NoticeBanner>
         )}
 
         {isEnded ? (
-          <View style={styles.endedBanner}>
-            <Text style={styles.endedText}>This conversation has ended.</Text>
+          <View style={[styles.ended, { borderTopColor: color.hairline }]}>
+            <Text variant="footnote" color="textTertiary" align="center">
+              This conversation has ended.
+            </Text>
           </View>
         ) : voice.recording ? (
-          <View style={styles.recordingBar}>
-            <View style={styles.recordingIndicator}>
-              <View style={styles.recordingDot} />
-              <Text style={styles.recordingTime}>
+          <View style={[styles.composer, { borderTopColor: color.hairline }]}>
+            <View style={styles.recording}>
+              <View style={[styles.recordingDot, { backgroundColor: color.danger }]} />
+              <Text variant="bodyMedium" style={styles.recordingTime}>
                 {formatRecordingTime(voice.durationMs)}
               </Text>
+              <Text variant="footnote" color="textTertiary">
+                up to 5:00
+              </Text>
             </View>
-            <View style={styles.recordingActions}>
-              <TouchableOpacity
-                onPress={voice.cancelRecording}
-                style={styles.recordingCancelBtn}
-              >
-                <Text style={styles.recordingCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={async () => {
-                  await voice.stopRecording();
-                  if (user) await voice.sendVoiceMemo(user.id);
-                }}
-                style={styles.recordingStopBtn}
-              >
-                <Text style={styles.recordingStopText}>
-                  {voice.uploading ? "..." : "Send"}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Button title="Cancel" variant="quiet" onPress={voice.cancelRecording} />
+            <Button
+              title="Send"
+              loading={voice.uploading}
+              onPress={async () => {
+                await voice.stopRecording();
+                if (user) await voice.sendVoiceMemo(user.id);
+              }}
+            />
           </View>
         ) : (
-          <View style={styles.inputBar}>
-            <TouchableOpacity
+          <View style={[styles.composer, { borderTopColor: color.hairline }]}>
+            <IconButton
+              name="plus"
+              label="Send a photo or video"
               onPress={handleAttach}
-              disabled={sending || voice.uploading || mediaSending}
-              accessibilityRole="button"
-              accessibilityLabel="Send a photo or video"
-              style={[
-                styles.micButton,
-                (sending || voice.uploading || mediaSending) && styles.sendButtonDisabled,
-              ]}
-            >
-              <Text style={styles.attachIcon}>+</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={voice.startRecording}
-              disabled={sending || voice.uploading}
-              style={[
-                styles.micButton,
-                (sending || voice.uploading) && styles.sendButtonDisabled,
-              ]}
-            >
-              <Text style={styles.micIcon}>🎤</Text>
-            </TouchableOpacity>
+              disabled={busy}
+            />
             <TextInput
               ref={inputRef}
-              style={styles.input}
-              placeholder="Message..."
-              placeholderTextColor="#A8A29E"
+              style={[
+                typeScale.body,
+                styles.input,
+                { backgroundColor: color.surfaceSunken, color: color.text },
+              ]}
+              placeholder="Message"
+              placeholderTextColor={color.textTertiary}
               value={text}
               onChangeText={setText}
               multiline
               maxLength={2000}
               editable={!sending && !voice.uploading}
             />
-            <TouchableOpacity
-              onPress={handleSend}
-              disabled={!text.trim() || sending}
-              style={[
-                styles.sendButton,
-                (!text.trim() || sending) && styles.sendButtonDisabled,
-              ]}
-            >
-              <Text style={styles.sendButtonText}>
-                {sending ? "..." : "Send"}
-              </Text>
-            </TouchableOpacity>
+            {text.trim() ? (
+              <Pressable
+                onPress={handleSend}
+                disabled={sending}
+                accessibilityRole="button"
+                accessibilityLabel="Send"
+                style={({ pressed }) => [
+                  styles.send,
+                  { backgroundColor: pressed ? color.accentFillPressed : color.accentFill },
+                  sending && { opacity: 0.5 },
+                ]}
+              >
+                <Icon name="send" size={18} color={color.onAccent} />
+              </Pressable>
+            ) : (
+              <IconButton
+                name="mic"
+                label="Record a voice memo"
+                onPress={voice.startRecording}
+                disabled={busy}
+              />
+            )}
           </View>
         )}
       </KeyboardAvoidingView>
 
-      <ReportModal
+      <ReportSheet
         visible={showReport}
         ended={!!isEnded}
         onClose={() => setShowReport(false)}
@@ -715,300 +765,60 @@ export default function ConversationScreen() {
 }
 
 const styles = StyleSheet.create({
-  unsentText: {
-    fontSize: 13,
-    fontStyle: "italic",
-    color: "#78716C",
-    marginVertical: 4,
-  },
-  unsentOwn: { alignSelf: "flex-end" },
-  unsentTheirs: { alignSelf: "flex-start" },
-  attachIcon: {
-    fontSize: 24,
-    lineHeight: 26,
-    color: "#57534E",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-  },
-  center: {
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  headerTitle: { flexDirection: "row", alignItems: "center", gap: space.sm, maxWidth: 220 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: space.lg },
+  messageList: { paddingHorizontal: space.lg, paddingVertical: space.md, flexGrow: 1 },
+  empty: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FAFAF9",
+    paddingHorizontal: space.xxl,
+    transform: [{ scaleY: -1 }],
   },
-  errorText: {
-    fontSize: 16,
-    color: "#78716C",
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerHelp: {
-    fontSize: 15,
-    color: "#3B82F6",
-    fontWeight: "600",
-    paddingHorizontal: 8,
-  },
-  headerAction: {
-    fontSize: 22,
-    color: "#1C1917",
-    paddingHorizontal: 8,
-    letterSpacing: 2,
-  },
-  messageList: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-  },
-  bubble: {
-    maxWidth: "80%",
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginVertical: 2,
-  },
-  bubbleOwn: {
-    backgroundColor: "#3B82F6",
-    alignSelf: "flex-end",
-    borderBottomRightRadius: 4,
-  },
-  bubbleTheirs: {
-    backgroundColor: "#E5E7EB",
-    alignSelf: "flex-start",
-    borderBottomLeftRadius: 4,
-  },
-  bubbleText: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  textOwn: {
-    color: "#FFFFFF",
-  },
-  textTheirs: {
-    color: "#1C1917",
-  },
-  timestamp: {
-    fontSize: 11,
-    marginTop: 4,
-  },
-  tsOwn: {
-    color: "rgba(255,255,255,0.7)",
-    textAlign: "right",
-  },
-  tsTheirs: {
-    color: "#6B7280",
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    paddingHorizontal: 32,
-    alignItems: "center",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#78716C",
-    textAlign: "center",
-    lineHeight: 24,
-  },
-  contactWarning: {
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#FDE68A",
-  },
-  contactWarningText: {
-    fontSize: 14,
-    color: "#92400E",
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  contactWarningActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  contactWarningBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#FDE68A",
-  },
-  contactWarningBtnText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#92400E",
-  },
-  contactWarningSendBtn: {
-    backgroundColor: "#92400E",
-  },
-  contactWarningSendText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  endedBanner: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: "#F5F5F4",
-    borderTopWidth: 1,
-    borderTopColor: "#E7E5E4",
-    alignItems: "center",
-  },
-  endedText: {
-    fontSize: 15,
-    color: "#78716C",
-  },
-  inputBar: {
+  banner: { marginHorizontal: space.lg, marginBottom: space.sm },
+  bannerActions: { flexDirection: "row", justifyContent: "flex-end", gap: space.sm, marginTop: space.sm },
+  ended: { borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: space.lg },
+  composer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#E7E5E4",
-    backgroundColor: "#fff",
-    gap: 8,
+    gap: space.sm,
+    paddingHorizontal: space.md,
+    paddingTop: space.sm,
+    paddingBottom: space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  iconButton: {
+    width: minTapTarget - 4,
+    height: minTapTarget - 4,
+    alignItems: "center",
+    justifyContent: "center",
   },
   input: {
     flex: 1,
-    backgroundColor: "#F5F5F4",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    fontSize: 16,
-    color: "#1C1917",
-    maxHeight: 100,
+    minHeight: 40,
+    maxHeight: 140,
+    borderRadius: radius.bubble,
+    paddingHorizontal: space.lg,
+    paddingTop: 9,
+    paddingBottom: 9,
   },
-  sendButton: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  sendButtonDisabled: {
-    opacity: 0.4,
-  },
-  sendButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  micButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F5F5F4",
+  send: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
+    marginBottom: 2,
   },
-  micIcon: {
-    fontSize: 18,
-  },
-  recordingBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#E7E5E4",
-    backgroundColor: "#FEF2F2",
-  },
-  recordingIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  recordingDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#DC2626",
-  },
-  recordingTime: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#DC2626",
-    fontVariant: ["tabular-nums"],
-  },
-  recordingActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  recordingCancelBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  recordingCancelText: {
-    fontSize: 15,
-    color: "#78716C",
-    fontWeight: "500",
-  },
-  recordingStopBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: "#3B82F6",
-  },
-  recordingStopText: {
-    fontSize: 15,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1C1917",
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 15,
-    color: "#57534E",
-    lineHeight: 22,
-    marginBottom: 16,
-  },
+  recording: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.sm },
+  recordingDot: { width: 10, height: 10, borderRadius: 5 },
+  recordingTime: { fontVariant: ["tabular-nums"] },
+  sheetBody: { gap: space.lg },
   reportInput: {
-    backgroundColor: "#F5F5F4",
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    color: "#1C1917",
+    minHeight: 88,
+    borderRadius: radius.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
     textAlignVertical: "top",
-    minHeight: 80,
-    marginBottom: 16,
-  },
-  reportButton: {
-    backgroundColor: "#DC2626",
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  reportButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  cancelButton: {
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    color: "#78716C",
   },
 });

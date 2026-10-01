@@ -11,6 +11,7 @@ const icons = {
   checkCircle: { ios: "checkmark.circle.fill", android: "check_circle", web: "check_circle" },
   circle: { ios: "circle", android: "radio_button_unchecked", web: "radio_button_unchecked" },
   close: { ios: "xmark", android: "close", web: "close" },
+  plus: { ios: "plus", android: "add", web: "add" },
   mic: { ios: "mic", android: "mic", web: "mic" },
   send: { ios: "arrow.up", android: "arrow_upward", web: "arrow_upward" },
   stop: { ios: "stop.fill", android: "stop", web: "stop" },
