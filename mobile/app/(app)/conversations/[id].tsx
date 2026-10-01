@@ -12,7 +12,8 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
-import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from "expo-router";
+import { setActiveConversation } from "../../../src/lib/notifications";
 import { useAuth } from "../../../src/hooks/useAuth";
 import { useMessages } from "../../../src/hooks/useMessages";
 import { useConversation } from "../../../src/hooks/useConversation";
@@ -215,6 +216,14 @@ export default function ConversationScreen() {
     messages.some((m) => m.sender_id !== user.id);
 
   const isEnded = info?.matchEnded || info?.conversationDeleted;
+
+  // No notification banner for messages in the conversation you're looking at.
+  useFocusEffect(
+    useCallback(() => {
+      setActiveConversation(id ?? null);
+      return () => setActiveConversation(null);
+    }, [id])
+  );
 
   useEffect(() => {
     if (id) supabase.rpc("mark_read", { conv: id });

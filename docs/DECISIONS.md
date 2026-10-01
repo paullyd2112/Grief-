@@ -186,6 +186,14 @@ conversation and in any report snapshot, so the pattern is still visible.
 **Decided.** 50 photos and videos and 50 voice memos per member per day.
 Voice memos up to 5 minutes: shorter caps push people to move off the app.
 
+### D26. Push notifications
+**Decided.** The database sends them through Expo's push service (pg_net, like
+the operator alerts). They say only that something arrived, never what: "New
+message from Maya", "You've been matched with someone", "Checking in on you".
+The app asks permission after intake ("we'll let you know when you're
+matched"), shows no banner for the conversation you're already in, opens the
+conversation when tapped, and removes the phone's token on sign-out.
+
 ---
 
 ## Open

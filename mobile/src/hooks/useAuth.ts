@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { unregisterForPush } from "../lib/notifications";
 
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -55,6 +56,7 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(async () => {
+    await unregisterForPush();
     await supabase.auth.signOut();
   }, []);
 

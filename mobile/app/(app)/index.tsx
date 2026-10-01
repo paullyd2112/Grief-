@@ -17,6 +17,7 @@ import { useProfile } from "../../src/hooks/useProfile";
 import { SUPPORT_EMAIL } from "../../src/lib/config";
 import type { AttachmentKind, MatchEndNotice, Warning } from "../../src/lib/types";
 import { describeAttachments } from "../../src/lib/media";
+import { registerForPush } from "../../src/lib/notifications";
 
 interface ConversationItem {
   id: string;
@@ -66,6 +67,9 @@ export default function HomeScreen() {
       .maybeSingle();
 
     setHasIntake(!!intake);
+    // After intake is the moment notifications make sense ("we'll let you
+    // know when you're matched"), so that's where we ask.
+    if (intake) registerForPush({ ask: true });
 
     const { data: convs } = await supabase
       .from("conversation_participants")

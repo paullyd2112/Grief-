@@ -61,9 +61,9 @@ navigation step.
 2. **Fonts: Instrument Serif + Figtree.** **Decided.** Instrument Serif
    (one weight, plus italic) for the wordmark, titles and avatar initials;
    Figtree for body text and names.
-3. **To confirm — check-in card.** One button (988), "Text HELLO to 741741" as a link.
+3. **Check-in card.** **Decided.** One button (988), "Text HELLO to 741741" as a link.
    Copy unchanged.
-4. **To confirm — crisis help** as plain text in the header of every screen.
+4. **Crisis help: not in every header.** **Decided:** too much on every screen. It stays on the home screen, in every conversation (Get help) and in Settings.
 
 ## Landing page
 

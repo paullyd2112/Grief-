@@ -1129,6 +1129,59 @@ select pg_temp.check('deleting the conversation removes its photos and videos',
   (select count(*) from public.attachments
     where conversation_id = 'cccccccc-0000-0000-0000-0000000000d1') = 0);
 
+-- 31. Push notifications (0016).
+set role authenticated;
+set request.jwt.claim.sub = 'd1000000-0000-0000-0000-0000000000d1';
+select public.register_push_token('ExponentPushToken[sam-phone]', 'ios');
+select pg_temp.check('a member can register their phone for notifications',
+  (select count(*) from public.push_tokens) = 1);
+
+set request.jwt.claim.sub = 'd2000000-0000-0000-0000-0000000000d2';
+select pg_temp.check('members cannot see each other''s devices',
+  (select count(*) from public.push_tokens) = 0);
+do $$
+begin
+  insert into public.push_tokens (token, user_id) values
+    ('ExponentPushToken[fake-one]', 'd1000000-0000-0000-0000-0000000000d1');
+  raise exception 'FAIL: wrote a token directly';
+exception when insufficient_privilege then
+  raise notice 'PASS  tokens are only written through register_push_token';
+end $$;
+
+-- Same phone, different account: the token follows whoever signed in last.
+select public.register_push_token('ExponentPushToken[sam-phone]', 'ios');
+set role postgres;
+select pg_temp.check('a phone''s token moves to the account now using it',
+  (select user_id from public.push_tokens where token = 'ExponentPushToken[sam-phone]')
+    = 'd2000000-0000-0000-0000-0000000000d2');
+
+set role authenticated;
+set request.jwt.claim.sub = 'd1000000-0000-0000-0000-0000000000d1';
+select public.unregister_push_token('ExponentPushToken[sam-phone]');
+set role postgres;
+select pg_temp.check('signing out cannot remove someone else''s device',
+  (select count(*) from public.push_tokens) = 1);
+set role authenticated;
+set request.jwt.claim.sub = 'd2000000-0000-0000-0000-0000000000d2';
+select public.unregister_push_token('ExponentPushToken[sam-phone]');
+set role postgres;
+select pg_temp.check('signing out removes your device',
+  (select count(*) from public.push_tokens) = 0);
+
+-- Sending fails quietly where pg_net isn't available (as in this test
+-- database), so a message still goes through.
+select public.register_push_token('ExponentPushToken[x]', 'ios');
+insert into public.matches (id, user_a, user_b) values
+  ('aaaaaaaa-0000-0000-0000-0000000000d2',
+   'd1000000-0000-0000-0000-0000000000d1', 'd2000000-0000-0000-0000-0000000000d2');
+insert into public.conversations (id, match_id) values
+  ('cccccccc-0000-0000-0000-0000000000d2', 'aaaaaaaa-0000-0000-0000-0000000000d2');
+insert into public.messages (conversation_id, sender_id, kind, body) values
+  ('cccccccc-0000-0000-0000-0000000000d2', 'd1000000-0000-0000-0000-0000000000d1', 'text', 'hi again');
+select pg_temp.check('a failed push never blocks a message or a match',
+  (select count(*) from public.messages
+    where conversation_id = 'cccccccc-0000-0000-0000-0000000000d2') = 1);
+
 set role postgres;
 \echo ''
 \echo 'All access policy assertions passed.'
