@@ -358,7 +358,7 @@ export default function ConversationScreen() {
           style: "destructive",
           onPress: async () => {
             await supabase.rpc("end_match", { conv: id, silent: false });
-            router.replace("/(app)/");
+            router.replace("/(app)/(tabs)");
           },
         },
       ]
@@ -407,7 +407,7 @@ export default function ConversationScreen() {
         Alert.alert(
           "Report received",
           `A person at Ndo will review it. ${info.partnerName} won't be told who reported them.`,
-          [{ text: "OK", onPress: () => router.replace("/(app)/") }]
+          [{ text: "OK", onPress: () => router.replace("/(app)/(tabs)") }]
         );
       } catch {
         Alert.alert("Something went wrong", "Please try again.");
@@ -436,7 +436,7 @@ export default function ConversationScreen() {
               Alert.alert("Something went wrong", "Please try again.");
               return;
             }
-            router.replace("/(app)/");
+            router.replace("/(app)/(tabs)");
           },
         },
       ]
@@ -464,7 +464,7 @@ export default function ConversationScreen() {
               }
             }
             await supabase.rpc("delete_conversation", { conv: id });
-            router.replace("/(app)/");
+            router.replace("/(app)/(tabs)");
           },
         },
       ]

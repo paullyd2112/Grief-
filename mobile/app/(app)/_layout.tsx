@@ -35,13 +35,12 @@ export default function AppLayout() {
         contentStyle: { backgroundColor: "#FAFAF9" },
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Ndo" }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="intake" options={{ title: "Tell us about your loss" }} />
       <Stack.Screen
         name="conversations"
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="settings" options={{ title: "Settings" }} />
       <Stack.Screen name="crisis" options={{ title: "Crisis Resources" }} />
       <Stack.Screen name="guidelines" options={{ title: "Guidelines" }} />
       <Stack.Screen name="my-data" options={{ title: "Your Data" }} />

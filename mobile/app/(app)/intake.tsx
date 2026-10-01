@@ -213,7 +213,7 @@ export default function IntakeScreen() {
     }
 
     if (router.canGoBack()) router.back();
-    else router.replace("/(app)");
+    else router.replace("/(app)/(tabs)");
   };
 
   if (prefilling) {

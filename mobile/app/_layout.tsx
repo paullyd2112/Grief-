@@ -40,7 +40,7 @@ function GatedSlot() {
     } else if (gate.suspended) {
       if (path !== "(auth)/suspended") router.replace("/(auth)/suspended");
     } else if (inAuthGroup) {
-      router.replace("/(app)");
+      router.replace("/(app)/(tabs)");
     }
   }, [ready, isDesignPreview, user, gate, segments, router]);
 

@@ -60,7 +60,7 @@ export default function CreateProfileScreen() {
     // 23505 means the profile already exists, which is fine: move on.
     await refreshGate();
     setLoading(false);
-    router.replace("/(app)");
+    router.replace("/(app)/(tabs)");
   };
 
   return (

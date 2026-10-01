@@ -10,10 +10,10 @@ import {
   Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuth } from "../../src/hooks/useAuth";
-import { useProfile } from "../../src/hooks/useProfile";
-import { supabase } from "../../src/lib/supabase";
-import { getShowRightAway, setShowRightAway } from "../../src/lib/media";
+import { useAuth } from "../../../src/hooks/useAuth";
+import { useProfile } from "../../../src/hooks/useProfile";
+import { supabase } from "../../../src/lib/supabase";
+import { getShowRightAway, setShowRightAway } from "../../../src/lib/media";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
