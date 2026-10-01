@@ -63,8 +63,8 @@ export function IntakeCard({
       onClick={onSelect}
       className={`w-full text-left border rounded-xl p-4 transition ${
         selected
-          ? "border-stone-900 bg-stone-900/5 ring-1 ring-stone-900"
-          : "border-stone-200 bg-white hover:border-stone-400"
+          ? "border-accent bg-accent-soft ring-1 ring-accent"
+          : "border-stone-200 bg-stone-50 hover:border-stone-400"
       }`}
     >
       <div className="flex items-center justify-between mb-3">

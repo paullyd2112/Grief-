@@ -1,12 +1,7 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
+import { Button, Screen, Text } from "../../src/components/ui";
+import { space } from "../../src/theme";
 import { useAuth } from "../../src/hooks/useAuth";
 import { useGate } from "../../src/hooks/useGate";
 import { supabase } from "../../src/lib/supabase";
@@ -34,84 +29,36 @@ export default function AccountDeletedScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Your account is being deleted</Text>
-      <Text style={styles.body}>
-        {deleteOn
-          ? `It will be permanently deleted on ${deleteOn.toLocaleDateString(undefined, {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}. Until then you can change your mind.`
-          : "Until it's permanently deleted, you can change your mind."}
-      </Text>
-      <Text style={styles.body}>
-        {"If you keep it, you'll go back into the queue to be matched. Conversations that ended when you deleted your account won't come back."}
-      </Text>
-
-      <TouchableOpacity
-        style={[styles.primaryButton, restoring && styles.disabled]}
-        onPress={keepAccount}
-        disabled={restoring}
-      >
-        {restoring ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.primaryText}>Keep my account</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.button} onPress={signOut}>
-        <Text style={styles.buttonText}>Sign out</Text>
-      </TouchableOpacity>
-    </View>
+    <Screen
+      centered
+      footer={
+        <>
+          <Button title="Keep my account" block loading={restoring} onPress={keepAccount} />
+          <Button title="Sign out" variant="quiet" block onPress={signOut} />
+        </>
+      }
+    >
+      <View style={styles.intro}>
+        <Text variant="title1" accessibilityRole="header">
+          Your account is being deleted
+        </Text>
+        <Text variant="callout" color="textSecondary">
+          {deleteOn
+            ? `It will be permanently deleted on ${deleteOn.toLocaleDateString(undefined, {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}. Until then you can change your mind.`
+            : "Until it's permanently deleted, you can change your mind."}
+        </Text>
+        <Text variant="callout" color="textSecondary">
+          {"If you keep it, you'll go back into the queue to be matched. Conversations that ended when you deleted your account won't come back."}
+        </Text>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#1C1917",
-    marginBottom: 12,
-  },
-  body: {
-    fontSize: 16,
-    color: "#57534E",
-    lineHeight: 24,
-    marginBottom: 16,
-  },
-  primaryButton: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  primaryText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  button: {
-    borderWidth: 1,
-    borderColor: "#D6D3D1",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#78716C",
-    fontSize: 16,
-  },
+  intro: { gap: space.md },
 });

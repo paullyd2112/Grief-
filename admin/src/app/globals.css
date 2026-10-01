@@ -1,26 +1,45 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* The console shares the app's palette: warm paper, ink text, plum accent.
+   Light only: operators work in it for long stretches and the status colors
+   (red, amber, green) are tuned for a light page. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-figtree), system-ui, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --color-stone-50: #faf8f4;
+  --color-stone-100: #eae6df;
+  --color-stone-200: #dedad2;
+  --color-stone-300: #cfcac1;
+  --color-stone-400: #8d877f;
+  --color-stone-500: #6a655e;
+  --color-stone-600: #5c5852;
+  --color-stone-700: #46423d;
+  --color-stone-800: #2e2b28;
+  --color-stone-900: #1c1b19;
+
+  --color-accent: #46304b;
+  --color-accent-hover: #36243a;
+  --color-accent-soft: #e9e2e9;
+}
+
+:root {
+  color-scheme: light;
+  --background: #f4f1eb;
+  --foreground: #1c1b19;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+h1,
+h2 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }

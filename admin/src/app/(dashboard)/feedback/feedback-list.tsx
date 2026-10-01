@@ -38,7 +38,7 @@ export function FeedbackList({ feedback }: { feedback: FeedbackRow[] }) {
         <div
           key={f.id}
           className={`border rounded-xl p-4 ${
-            f.read_at ? "border-stone-200 bg-white" : "border-blue-200 bg-blue-50/30"
+            f.read_at ? "border-stone-200 bg-stone-50" : "border-accent/30 bg-accent-soft/40"
           }`}
         >
           <div className="flex items-start justify-between mb-2">

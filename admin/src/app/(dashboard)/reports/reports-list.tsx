@@ -10,6 +10,7 @@ import {
   warnUser,
 } from "@/lib/admin-actions";
 import type { AccountStatus } from "@/lib/types";
+import { createClient } from "@/lib/supabase-browser";
 
 // Reporter and reported are null once that account has been hard-deleted.
 export interface ReportRow {
@@ -26,6 +27,79 @@ export interface ReportRow {
   resolution: string | null;
   reporter: { display_name: string } | null;
   reported: { display_name: string; status: AccountStatus } | null;
+}
+
+interface ReportedAttachment {
+  kind: "photo" | "video";
+  report_path: string | null;
+  duration_ms: number | null;
+}
+
+// Photos and videos in a report were copied by the reporter's app into the
+// operators-only `reported-media` bucket. Hidden until you choose to look,
+// and each look is logged like any other read of the snapshot.
+function ReportedMedia({
+  report,
+  items,
+}: {
+  report: ReportRow;
+  items: ReportedAttachment[];
+}) {
+  const [urls, setUrls] = useState<(string | null)[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const show = async () => {
+    setLoading(true);
+    await logAccess({
+      subjectUserId: report.reported_user_id,
+      action: "report_media_viewed",
+      justification: "Viewed reported photos or videos to review a report",
+      reportId: report.id,
+    });
+    const supabase = createClient();
+    const paths = items.map((i) => i.report_path).filter((p): p is string => !!p);
+    const { data } = await supabase.storage.from("reported-media").createSignedUrls(paths, 600);
+    const byPath = new Map((data ?? []).map((d) => [d.path, d.signedUrl]));
+    setUrls(items.map((i) => (i.report_path ? byPath.get(i.report_path) ?? null : null)));
+    setLoading(false);
+  };
+
+  const label = `${items.length} ${items.length === 1 ? "photo or video" : "photos or videos"}`;
+
+  if (!urls) {
+    return (
+      <button
+        onClick={show}
+        disabled={loading}
+        className="mt-1 text-xs text-stone-600 underline underline-offset-2 hover:text-stone-900 disabled:opacity-50"
+      >
+        {loading ? "Loading…" : `Show ${label} (logged)`}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {items.map((item, i) => {
+        const url = urls[i];
+        if (!url) {
+          return (
+            <span key={i} className="text-xs text-stone-400 italic">
+              [{item.kind} could not be copied when reported]
+            </span>
+          );
+        }
+        return item.kind === "photo" ? (
+          <a key={i} href={url} target="_blank" rel="noreferrer">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="Reported photo" className="h-32 w-32 object-cover rounded-lg border border-stone-200" />
+          </a>
+        ) : (
+          <video key={i} src={url} controls className="h-32 rounded-lg border border-stone-200" />
+        );
+      })}
+    </div>
+  );
 }
 
 function SnapshotViewer({ report }: { report: ReportRow }) {
@@ -51,7 +125,19 @@ function SnapshotViewer({ report }: { report: ReportRow }) {
     <div className="space-y-2 max-h-64 overflow-y-auto">
       {messages.map((msg: Record<string, unknown>, i: number) => {
         const senderName = nameFor(msg.sender_id);
-        const body = typeof msg.body === "string" ? msg.body : (msg.kind === "voice" ? "[voice memo]" : "");
+        const unsent = typeof msg.unsent_at === "string";
+        const attachments = Array.isArray(msg.attachments)
+          ? (msg.attachments as ReportedAttachment[])
+          : [];
+        const body = unsent
+          ? `[unsent ${msg.kind === "voice" ? "voice memo" : "photo or video"}]`
+          : typeof msg.body === "string"
+            ? msg.body
+            : msg.kind === "voice"
+              ? "[voice memo]"
+              : msg.kind === "media"
+                ? "[photos or videos]"
+                : "";
         const ts = typeof msg.created_at === "string" ? msg.created_at : null;
         return (
           <div key={i} className="text-sm">
@@ -64,6 +150,7 @@ function SnapshotViewer({ report }: { report: ReportRow }) {
                 {new Date(ts).toLocaleString()}
               </span>
             )}
+            {attachments.length > 0 && <ReportedMedia report={report} items={attachments} />}
           </div>
         );
       })}
@@ -98,7 +185,7 @@ function JustifiedAction({
         }}
         disabled={!text.trim()}
         className={`${
-          danger ? "bg-red-600 hover:bg-red-700" : "bg-stone-900 hover:bg-stone-800"
+          danger ? "bg-red-600 hover:bg-red-700" : "bg-accent hover:bg-accent-hover"
         } text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 transition`}
       >
         {buttonLabel}
@@ -137,7 +224,7 @@ function ReportCard({
       className={`border rounded-xl p-4 ${
         isOpen
           ? "border-red-200 bg-red-50/30"
-          : "border-stone-200 bg-white"
+          : "border-stone-200 bg-stone-50"
       }`}
     >
       <div className="flex items-start justify-between mb-3">
@@ -355,7 +442,7 @@ export function ReportsList({ reports }: { reports: ReportRow[] }) {
           onClick={() => setTab("open")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
             tab === "open"
-              ? "bg-stone-900 text-white"
+              ? "bg-accent text-white"
               : "text-stone-600 hover:bg-stone-100"
           }`}
         >
@@ -365,7 +452,7 @@ export function ReportsList({ reports }: { reports: ReportRow[] }) {
           onClick={() => setTab("resolved")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
             tab === "resolved"
-              ? "bg-stone-900 text-white"
+              ? "bg-accent text-white"
               : "text-stone-600 hover:bg-stone-100"
           }`}
         >

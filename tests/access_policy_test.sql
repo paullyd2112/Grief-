@@ -860,6 +860,328 @@ delete from auth.users where id = 'f0000000-0000-0000-0000-00000000000f';
 select pg_temp.check('feedback is deleted with the account',
   (select count(*) from public.feedback) = 0);
 
+-- 30. Photos and videos, unsend, daily caps (0015).
+set role postgres;
+insert into auth.users (id) values
+  ('d1000000-0000-0000-0000-0000000000d1'), ('d2000000-0000-0000-0000-0000000000d2');
+insert into public.profiles (id, display_name, date_of_birth) values
+  ('d1000000-0000-0000-0000-0000000000d1', 'sam', '1990-01-01'),
+  ('d2000000-0000-0000-0000-0000000000d2', 'jo',  '1990-01-01');
+insert into public.matches (id, user_a, user_b) values
+  ('aaaaaaaa-0000-0000-0000-0000000000d1',
+   'd1000000-0000-0000-0000-0000000000d1', 'd2000000-0000-0000-0000-0000000000d2');
+insert into public.conversations (id, match_id) values
+  ('cccccccc-0000-0000-0000-0000000000d1', 'aaaaaaaa-0000-0000-0000-0000000000d1');
+
+set role authenticated;
+set request.jwt.claim.sub = 'd1000000-0000-0000-0000-0000000000d1';
+insert into storage.objects (bucket_id, name) values
+  ('attachments', 'cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-a.jpg'),
+  ('attachments', 'cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-v.mp4');
+do $$
+begin
+  insert into storage.objects (bucket_id, name) values
+    ('attachments', 'cccccccc-0000-0000-0000-0000000000d1/d2000000-0000-0000-0000-0000000000d2-x.jpg');
+  raise exception 'FAIL: uploaded a file under someone else''s name';
+exception when insufficient_privilege then
+  raise notice 'PASS  uploads are named after the person who sent them';
+end $$;
+
+do $$
+begin
+  perform public.send_media('cccccccc-0000-0000-0000-0000000000d1',
+    '[{"kind":"photo","path":"cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-a.jpg"}]');
+  raise exception 'FAIL: photo sent as an opening move';
+exception when raise_exception then
+  if sqlerrm not like 'media_locked%' then raise; end if;
+  raise notice 'PASS  photos and videos are locked until both people have said something';
+end $$;
+
+insert into public.messages (conversation_id, sender_id, kind, body) values
+  ('cccccccc-0000-0000-0000-0000000000d1', 'd1000000-0000-0000-0000-0000000000d1', 'text', 'hi');
+do $$
+begin
+  perform public.send_media('cccccccc-0000-0000-0000-0000000000d1',
+    '[{"kind":"photo","path":"cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-a.jpg"}]');
+  raise exception 'FAIL: unlocked before the other person replied';
+exception when raise_exception then
+  if sqlerrm not like 'media_locked%' then raise; end if;
+  raise notice 'PASS  one person talking is not enough to unlock photos';
+end $$;
+
+set request.jwt.claim.sub = 'd2000000-0000-0000-0000-0000000000d2';
+insert into public.messages (conversation_id, sender_id, kind, body) values
+  ('cccccccc-0000-0000-0000-0000000000d1', 'd2000000-0000-0000-0000-0000000000d2', 'text', 'hello');
+do $$
+begin
+  insert into public.messages (conversation_id, sender_id, kind, allow_save) values
+    ('cccccccc-0000-0000-0000-0000000000d1', 'd2000000-0000-0000-0000-0000000000d2', 'media', true);
+  raise exception 'FAIL: media message inserted directly';
+exception when insufficient_privilege then
+  raise notice 'PASS  photos and videos only go through send_media';
+end $$;
+
+set request.jwt.claim.sub = 'd1000000-0000-0000-0000-0000000000d1';
+do $$
+begin
+  perform public.send_media('cccccccc-0000-0000-0000-0000000000d1',
+    (select jsonb_agg(jsonb_build_object('kind', 'photo', 'path',
+       'cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-a.jpg'))
+       from generate_series(1, 11)));
+  raise exception 'FAIL: 11 attachments in one message';
+exception when raise_exception then
+  if sqlerrm not like 'too_many%' then raise; end if;
+  raise notice 'PASS  up to 10 photos or videos per message';
+end $$;
+do $$
+begin
+  perform public.send_media('cccccccc-0000-0000-0000-0000000000d1',
+    '[{"kind":"video","duration_ms":90000,"path":"cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-v.mp4"}]');
+  raise exception 'FAIL: 90-second video accepted';
+exception when raise_exception then
+  if sqlerrm not like 'too_long%' then raise; end if;
+  raise notice 'PASS  videos are capped at 60 seconds';
+end $$;
+do $$
+begin
+  perform public.send_media('cccccccc-0000-0000-0000-0000000000d1',
+    '[{"kind":"photo","path":"cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-missing.jpg"}]');
+  raise exception 'FAIL: attachment accepted without an uploaded file';
+exception when raise_exception then
+  if sqlerrm not like 'bad_request%' then raise; end if;
+  raise notice 'PASS  an attachment must point at a file the sender uploaded';
+end $$;
+
+select public.send_media('cccccccc-0000-0000-0000-0000000000d1',
+  '[{"kind":"photo","width":2048,"height":1536,"path":"cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-a.jpg"},
+    {"kind":"video","duration_ms":42000,"path":"cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-v.mp4"}]',
+  'This is my brother at his 30th', true);
+select pg_temp.check('a photo and a video go out as one message with a caption',
+  (select count(*) = 1 and bool_and(allow_save) and bool_and(body = 'This is my brother at his 30th')
+     from public.messages
+    where conversation_id = 'cccccccc-0000-0000-0000-0000000000d1' and kind = 'media')
+  and (select count(*) from public.attachments) = 2);
+
+set request.jwt.claim.sub = 'd2000000-0000-0000-0000-0000000000d2';
+select pg_temp.check('the other participant can see the photo and video',
+  (select count(*) from public.attachments) = 2
+  and (select count(*) from storage.objects where bucket_id = 'attachments') = 2);
+do $$
+begin
+  if array_length(public.unsend_message(
+       (select id from public.messages where kind = 'media')), 1) is not null then
+    raise exception 'FAIL: unsent someone else''s photo';
+  end if;
+exception when raise_exception then
+  if sqlerrm like 'FAIL%' then raise; end if;
+  if sqlerrm not like 'not_allowed%' then raise; end if;
+  raise notice 'PASS  only the sender can unsend';
+end $$;
+
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select pg_temp.check('a stranger sees no photos or videos',
+  (select count(*) from public.attachments) = 0
+  and (select count(*) from storage.objects where bucket_id = 'attachments') = 0);
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check('OPERATOR CANNOT SEE PHOTOS OR VIDEOS',
+  (select count(*) from public.attachments) = 0
+  and (select count(*) from storage.objects where bucket_id = 'attachments') = 0);
+
+-- Reported media: the reporter's app copies files here; only operators read it.
+set request.jwt.claim.sub = 'd2000000-0000-0000-0000-0000000000d2';
+insert into storage.objects (bucket_id, name) values
+  ('reported-media', 'd2000000-0000-0000-0000-0000000000d2/r1/a.jpg');
+do $$
+begin
+  insert into storage.objects (bucket_id, name) values
+    ('reported-media', 'd1000000-0000-0000-0000-0000000000d1/r1/a.jpg');
+  raise exception 'FAIL: filed media under someone else''s name';
+exception when insufficient_privilege then
+  raise notice 'PASS  reporters can only add to their own report folder';
+end $$;
+select pg_temp.check('a reporter cannot read reported media back',
+  (select count(*) from storage.objects where bucket_id = 'reported-media') = 0);
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check('operators can review reported media',
+  (select count(*) from storage.objects where bucket_id = 'reported-media') = 1);
+
+-- Unsend.
+set request.jwt.claim.sub = 'd1000000-0000-0000-0000-0000000000d1';
+select pg_temp.check('unsend returns the files to remove',
+  array_length(public.unsend_message(
+    (select id from public.messages where kind = 'media')), 1) = 2);
+select pg_temp.check('an unsent message keeps its place but loses its content',
+  (select unsent_at is not null and body is null and not allow_save
+     from public.messages where kind = 'media')
+  and (select count(*) from public.attachments) = 0);
+set request.jwt.claim.sub = 'd2000000-0000-0000-0000-0000000000d2';
+select pg_temp.check('unsent photos are gone for the other person too',
+  (select count(*) from public.attachments) = 0);
+set role postgres;
+select pg_temp.check('unsent files are queued for removal',
+  (select count(*) from private.storage_trash where bucket = 'attachments') = 2);
+set role authenticated;
+set request.jwt.claim.sub = 'd1000000-0000-0000-0000-0000000000d1';
+do $$
+begin
+  perform public.unsend_message((select id from public.messages
+                                  where kind = 'text' and body = 'hi'));
+  raise exception 'FAIL: text unsent';
+exception when raise_exception then
+  if sqlerrm not like 'not_allowed%' then raise; end if;
+  raise notice 'PASS  text messages cannot be unsent';
+end $$;
+
+-- Voice memos: unsend, 5 minutes, 50 a day.
+insert into public.voice_memos (id, storage_path, duration_ms) values
+  ('eeeeeeee-0000-0000-0000-0000000000d1', 'cccccccc-0000-0000-0000-0000000000d1/1.m4a', 240000);
+insert into public.messages (conversation_id, sender_id, kind, voice_memo_id) values
+  ('cccccccc-0000-0000-0000-0000000000d1', 'd1000000-0000-0000-0000-0000000000d1',
+   'voice', 'eeeeeeee-0000-0000-0000-0000000000d1');
+select pg_temp.check('a four-minute voice memo is fine',
+  (select count(*) from public.messages where kind = 'voice') = 1);
+select pg_temp.check('unsending a voice memo returns its audio file',
+  public.unsend_message((select id from public.messages where kind = 'voice'))
+    = array['cccccccc-0000-0000-0000-0000000000d1/1.m4a']);
+select pg_temp.check('an unsent voice memo keeps its place but loses its audio',
+  (select voice_memo_id is null and unsent_at is not null
+     from public.messages where kind = 'voice'));
+set role postgres;
+select pg_temp.check('an unsent voice memo is deleted',
+  not exists (select 1 from public.voice_memos where id = 'eeeeeeee-0000-0000-0000-0000000000d1'));
+do $$
+begin
+  insert into public.voice_memos (storage_path, duration_ms)
+  values ('cccccccc-0000-0000-0000-0000000000d1/long.m4a', 400000);
+  raise exception 'FAIL: 6-minute voice memo accepted';
+exception when check_violation then
+  raise notice 'PASS  voice memos are capped at 5 minutes';
+end $$;
+
+-- 49 more voice memos earlier today (50 with the unsent one), then one too many.
+insert into public.voice_memos (id, storage_path, duration_ms)
+select ('eeeeeeee-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid,
+       'cccccccc-0000-0000-0000-0000000000d1/v' || g || '.m4a', 1000
+  from generate_series(1, 50) g;
+insert into public.messages (conversation_id, sender_id, kind, voice_memo_id, created_at)
+select 'cccccccc-0000-0000-0000-0000000000d1', 'd1000000-0000-0000-0000-0000000000d1', 'voice',
+       ('eeeeeeee-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid, now() - interval '2 hours'
+  from generate_series(1, 49) g;
+set role authenticated;
+do $$
+begin
+  insert into public.messages (conversation_id, sender_id, kind, voice_memo_id) values
+    ('cccccccc-0000-0000-0000-0000000000d1', 'd1000000-0000-0000-0000-0000000000d1',
+     'voice', 'eeeeeeee-0000-0000-0000-000000000050');
+  raise exception 'FAIL: 51st voice memo of the day accepted';
+exception when raise_exception then
+  if sqlerrm not like 'rate_limited%' then raise; end if;
+  raise notice 'PASS  voice memos are capped at 50 a day';
+end $$;
+
+-- 50 photos a day: 48 already sent today, so 3 more is too many and 2 is fine.
+set role postgres;
+insert into storage.objects (bucket_id, name)
+select 'attachments', 'cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-n' || g || '.jpg'
+  from generate_series(1, 3) g;
+insert into public.messages (id, conversation_id, sender_id, kind, created_at)
+select ('ffffffff-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid,
+       'cccccccc-0000-0000-0000-0000000000d1', 'd1000000-0000-0000-0000-0000000000d1',
+       'media', now() - interval '3 hours'
+  from generate_series(1, 5) g;
+insert into public.attachments (message_id, conversation_id, sender_id, kind, storage_path, position)
+select ('ffffffff-0000-0000-0000-' || lpad((1 + (g - 1) / 10)::text, 12, '0'))::uuid,
+       'cccccccc-0000-0000-0000-0000000000d1', 'd1000000-0000-0000-0000-0000000000d1',
+       'photo', 'old/' || g || '.jpg', ((g - 1) % 10)::smallint
+  from generate_series(1, 48) g;
+set role authenticated;
+do $$
+begin
+  perform public.send_media('cccccccc-0000-0000-0000-0000000000d1',
+    (select jsonb_agg(jsonb_build_object('kind', 'photo', 'path',
+       'cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-n' || g || '.jpg'))
+       from generate_series(1, 3) g));
+  raise exception 'FAIL: went over 50 photos in a day';
+exception when raise_exception then
+  if sqlerrm not like 'rate_limited%' then raise; end if;
+  raise notice 'PASS  photos and videos are capped at 50 a day';
+end $$;
+select public.send_media('cccccccc-0000-0000-0000-0000000000d1',
+  (select jsonb_agg(jsonb_build_object('kind', 'photo', 'path',
+     'cccccccc-0000-0000-0000-0000000000d1/d1000000-0000-0000-0000-0000000000d1-n' || g || '.jpg'))
+     from generate_series(1, 2) g));
+select pg_temp.check('up to the daily cap still sends',
+  (select count(*) from public.attachments
+    where storage_path like 'cccccccc-%-n%') = 2);
+
+do $$
+begin
+  perform public.list_storage_trash();
+  raise exception 'FAIL: a user can read the storage trash';
+exception when insufficient_privilege then
+  raise notice 'PASS  only the retention job can empty the storage trash';
+end $$;
+
+select public.delete_conversation('cccccccc-0000-0000-0000-0000000000d1');
+set role postgres;
+select pg_temp.check('deleting the conversation removes its photos and videos',
+  (select count(*) from public.attachments
+    where conversation_id = 'cccccccc-0000-0000-0000-0000000000d1') = 0);
+
+-- 31. Push notifications (0016).
+set role authenticated;
+set request.jwt.claim.sub = 'd1000000-0000-0000-0000-0000000000d1';
+select public.register_push_token('ExponentPushToken[sam-phone]', 'ios');
+select pg_temp.check('a member can register their phone for notifications',
+  (select count(*) from public.push_tokens) = 1);
+
+set request.jwt.claim.sub = 'd2000000-0000-0000-0000-0000000000d2';
+select pg_temp.check('members cannot see each other''s devices',
+  (select count(*) from public.push_tokens) = 0);
+do $$
+begin
+  insert into public.push_tokens (token, user_id) values
+    ('ExponentPushToken[fake-one]', 'd1000000-0000-0000-0000-0000000000d1');
+  raise exception 'FAIL: wrote a token directly';
+exception when insufficient_privilege then
+  raise notice 'PASS  tokens are only written through register_push_token';
+end $$;
+
+-- Same phone, different account: the token follows whoever signed in last.
+select public.register_push_token('ExponentPushToken[sam-phone]', 'ios');
+set role postgres;
+select pg_temp.check('a phone''s token moves to the account now using it',
+  (select user_id from public.push_tokens where token = 'ExponentPushToken[sam-phone]')
+    = 'd2000000-0000-0000-0000-0000000000d2');
+
+set role authenticated;
+set request.jwt.claim.sub = 'd1000000-0000-0000-0000-0000000000d1';
+select public.unregister_push_token('ExponentPushToken[sam-phone]');
+set role postgres;
+select pg_temp.check('signing out cannot remove someone else''s device',
+  (select count(*) from public.push_tokens) = 1);
+set role authenticated;
+set request.jwt.claim.sub = 'd2000000-0000-0000-0000-0000000000d2';
+select public.unregister_push_token('ExponentPushToken[sam-phone]');
+set role postgres;
+select pg_temp.check('signing out removes your device',
+  (select count(*) from public.push_tokens) = 0);
+
+-- Sending fails quietly where pg_net isn't available (as in this test
+-- database), so a message still goes through.
+select public.register_push_token('ExponentPushToken[x]', 'ios');
+insert into public.matches (id, user_a, user_b) values
+  ('aaaaaaaa-0000-0000-0000-0000000000d2',
+   'd1000000-0000-0000-0000-0000000000d1', 'd2000000-0000-0000-0000-0000000000d2');
+insert into public.conversations (id, match_id) values
+  ('cccccccc-0000-0000-0000-0000000000d2', 'aaaaaaaa-0000-0000-0000-0000000000d2');
+insert into public.messages (conversation_id, sender_id, kind, body) values
+  ('cccccccc-0000-0000-0000-0000000000d2', 'd1000000-0000-0000-0000-0000000000d1', 'text', 'hi again');
+select pg_temp.check('a failed push never blocks a message or a match',
+  (select count(*) from public.messages
+    where conversation_id = 'cccccccc-0000-0000-0000-0000000000d2') = 1);
+
 set role postgres;
 \echo ''
 \echo 'All access policy assertions passed.'

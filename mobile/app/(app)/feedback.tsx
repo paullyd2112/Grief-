@@ -1,15 +1,9 @@
 import { useState } from "react";
-import {
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
+import { Button, Screen, Text, TextField } from "../../src/components/ui";
+import { space } from "../../src/theme";
 
 const MAX_LENGTH = 4000;
 
@@ -45,99 +39,46 @@ export default function FeedbackScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
+    <Screen
+      underHeader
+      footer={
+        <Button
+          title="Send feedback"
+          block
+          loading={sending}
+          disabled={!body.trim()}
+          onPress={handleSend}
+        />
+      }
     >
-      <Text style={styles.heading}>Tell us what you think</Text>
-      <Text style={styles.intro}>
-        {"Ndo is in beta, and every piece of feedback is read by a person. Tell us what's working, what isn't, and what you wish existed."}
-      </Text>
+      <View style={styles.intro}>
+        <Text variant="title1" accessibilityRole="header">
+          Tell us what you think
+        </Text>
+        <Text variant="callout" color="textSecondary">
+          {"Ndo is in beta, and every piece of feedback is read by a person. Tell us what's working, what isn't, and what you wish existed."}
+        </Text>
+      </View>
 
-      <TextInput
-        style={styles.input}
+      <TextField
+        label="Your feedback"
         value={body}
         onChangeText={setBody}
-        placeholder="Your feedback"
-        placeholderTextColor="#A8A29E"
         multiline
         maxLength={MAX_LENGTH}
         textAlignVertical="top"
         editable={!sending}
+        style={styles.input}
       />
 
-      <TouchableOpacity
-        style={[styles.sendButton, (!body.trim() || sending) && styles.sendDisabled]}
-        onPress={handleSend}
-        disabled={!body.trim() || sending}
-      >
-        {sending ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.sendText}>Send feedback</Text>
-        )}
-      </TouchableOpacity>
-
-      <Text style={styles.footer}>
+      <Text variant="footnote" color="textTertiary">
         {"To report someone, use Report inside the conversation instead, so it reaches review right away. If you're in crisis, use Crisis help on the home screen."}
       </Text>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#1C1917",
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  intro: {
-    fontSize: 15,
-    color: "#57534E",
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#E7E5E4",
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: "#1C1917",
-    minHeight: 160,
-    marginBottom: 16,
-  },
-  sendButton: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  sendDisabled: {
-    opacity: 0.4,
-  },
-  sendText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  footer: {
-    fontSize: 13,
-    color: "#A8A29E",
-    lineHeight: 18,
-    marginTop: 20,
-    textAlign: "center",
-  },
+  intro: { gap: space.sm },
+  input: { minHeight: 160 },
 });

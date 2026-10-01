@@ -1,13 +1,16 @@
 import { Stack } from "expo-router";
+import { fonts, useTheme } from "../../../src/theme";
 
 export default function ConversationsLayout() {
+  const { color } = useTheme();
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: "#FAFAF9" },
-        headerTintColor: "#1C1917",
+        headerStyle: { backgroundColor: color.background },
+        headerTintColor: color.text,
+        headerTitleStyle: { fontFamily: fonts.sansSemibold, color: color.text },
         headerShadowVisible: false,
-        contentStyle: { backgroundColor: "#FAFAF9" },
+        contentStyle: { backgroundColor: color.background },
       }}
     />
   );

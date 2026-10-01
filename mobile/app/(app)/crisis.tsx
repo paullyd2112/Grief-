@@ -1,4 +1,6 @@
-import { View, Text, TouchableOpacity, StyleSheet, Linking, ScrollView } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
+import { Button, Screen, Text } from "../../src/components/ui";
+import { radius, space, useTheme } from "../../src/theme";
 
 const resources = [
   {
@@ -36,125 +38,61 @@ const resources = [
 ] as const;
 
 export default function CrisisScreen() {
+  const { color } = useTheme();
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>You are not alone</Text>
-        <Text style={styles.headerBody}>
-          If you or someone you know is in immediate danger, call 911. The
-          resources below are free and available anytime.
+    <Screen underHeader>
+      <View style={styles.intro}>
+        <Text variant="title1" accessibilityRole="header">
+          You are not alone
+        </Text>
+        <Text variant="callout" color="textSecondary">
+          If you or someone you know is in immediate danger, call 911. The resources below are
+          free and available anytime.
         </Text>
       </View>
 
-      {resources.map((r) => (
-        <View key={r.name} style={styles.card}>
-          <Text style={styles.cardName}>{r.name}</Text>
-          <Text style={styles.cardDesc}>{r.description}</Text>
-          <View style={styles.cardActions}>
-            <TouchableOpacity
-              style={styles.cardButton}
+      {resources.map((r, i) => (
+        <View key={r.name} style={[styles.card, { backgroundColor: color.surface }]}>
+          <Text variant="headline">{r.name}</Text>
+          <Text variant="subhead" color="textSecondary">
+            {r.description}
+          </Text>
+          <View style={styles.actions}>
+            <Button
+              title={r.actionLabel}
+              // The first line is the one to reach for: it gets the filled button.
+              variant={i === 0 ? "primary" : "secondary"}
+              icon={r.action.startsWith("tel:") ? "phone" : r.action.startsWith("sms:") ? "message" : undefined}
               onPress={() => Linking.openURL(r.action)}
-            >
-              <Text style={styles.cardButtonText}>{r.actionLabel}</Text>
-            </TouchableOpacity>
+              style={styles.action}
+            />
             {"secondary" in r && r.secondary && (
-              <TouchableOpacity
-                style={[styles.cardButton, styles.cardButtonSecondary]}
+              <Button
+                title={r.secondaryLabel}
+                variant="secondary"
+                icon="message"
                 onPress={() => Linking.openURL(r.secondary)}
-              >
-                <Text style={[styles.cardButtonText, styles.cardButtonTextSecondary]}>
-                  {r.secondaryLabel}
-                </Text>
-              </TouchableOpacity>
+                style={styles.action}
+              />
             )}
           </View>
         </View>
       ))}
 
-      <Text style={styles.footer}>
-        Ndo is a peer support platform, not a crisis service. If you need
-        immediate help, please use the resources above.
+      <Text variant="footnote" color="textTertiary" align="center">
+        Ndo is a peer support platform, not a crisis service. If you need immediate help, please
+        use the resources above.
       </Text>
-      <Text style={styles.footer}>
+      <Text variant="footnote" color="textTertiary" align="center">
         {"These are independent organizations. Listing them isn't a vetting or endorsement by Ndo. Use your own judgment when reaching out to any of them."}
       </Text>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF9",
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
-  },
-  header: {
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#1C1917",
-    marginBottom: 8,
-  },
-  headerBody: {
-    fontSize: 15,
-    color: "#57534E",
-    lineHeight: 22,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E7E5E4",
-  },
-  cardName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1C1917",
-    marginBottom: 4,
-  },
-  cardDesc: {
-    fontSize: 14,
-    color: "#57534E",
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  cardActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  cardButton: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  cardButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  cardButtonSecondary: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#3B82F6",
-  },
-  cardButtonTextSecondary: {
-    color: "#3B82F6",
-  },
-  footer: {
-    textAlign: "center",
-    color: "#A8A29E",
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 12,
-    paddingHorizontal: 8,
-  },
+  intro: { gap: space.sm },
+  card: { borderRadius: radius.lg, padding: space.lg, gap: space.xs },
+  actions: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.sm },
+  action: { flexGrow: 1 },
 });

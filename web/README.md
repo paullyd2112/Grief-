@@ -29,11 +29,16 @@ Both are optional; see `.env.example`.
 - The privacy promise is quoted word for word from `docs/ACCESS_POLICY.md`.
   Change it there first.
 - Crisis resources match the app's crisis screen.
+- Legal pages mirror `docs/legal/` word for word. Change the wording there
+  first.
 - Don't add claims about pricing, availability or features until they're true.
 
 ## Before launch
 
-- Privacy policy and terms pages (after the lawyer review in BUILD_PLAN.md);
-  the App Store needs both URLs, plus a support URL.
+- Privacy policy: `/privacy` is built from `docs/legal/privacy-policy.md`, but
+  it's still a draft (it shows a notice, highlights the open [CONFIRM] items
+  and isn't indexed). Finish it with the review notes in `docs/legal/README.md`.
+- Terms page: waiting for the text. The App Store needs the privacy and terms
+  URLs, plus a support URL.
 - Favicon, app icon and social share image, once the wordmark is final.
 - Domain (DECISIONS.md O5).

@@ -34,7 +34,7 @@ function ConcernCard({
     <div
       className={`border rounded-xl p-4 ${
         !isOpen
-          ? "border-stone-200 bg-white"
+          ? "border-stone-200 bg-stone-50"
           : concern.urgent
             ? "border-red-300 bg-red-50/50"
             : "border-amber-300 bg-amber-50/40"
@@ -59,7 +59,7 @@ function ConcernCard({
       </div>
 
       {concern.note ? (
-        <p className="text-sm text-stone-800 bg-white border border-stone-200 rounded-lg p-3 mb-3">
+        <p className="text-sm text-stone-800 bg-stone-50 border border-stone-200 rounded-lg p-3 mb-3">
           &ldquo;{concern.note}&rdquo;
         </p>
       ) : (
@@ -83,7 +83,7 @@ function ConcernCard({
                   onSendCheckIn(concern.id);
                 }
               }}
-              className="bg-blue-600 text-white rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-blue-700 transition"
+              className="bg-accent text-white rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-accent-hover transition"
             >
               Send check-in
             </button>
@@ -128,7 +128,7 @@ function ConcernCard({
                   if (note.trim()) onHandle(concern.id, note.trim());
                 }}
                 disabled={!note.trim()}
-                className="bg-stone-900 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-stone-800 disabled:opacity-50 transition"
+                className="bg-accent text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-stone-800 disabled:opacity-50 transition"
               >
                 Mark handled
               </button>

@@ -3,11 +3,10 @@ import { Slot, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import {
-  Newsreader_400Regular_Italic,
-  Newsreader_500Medium,
-  Newsreader_600SemiBold,
-} from "@expo-google-fonts/newsreader";
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from "@expo-google-fonts/inter";
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+} from "@expo-google-fonts/instrument-serif";
+import { Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold } from "@expo-google-fonts/figtree";
 import { GateProvider, useGate } from "../src/hooks/useGate";
 
 function GatedSlot() {
@@ -41,7 +40,7 @@ function GatedSlot() {
     } else if (gate.suspended) {
       if (path !== "(auth)/suspended") router.replace("/(auth)/suspended");
     } else if (inAuthGroup) {
-      router.replace("/(app)");
+      router.replace("/(app)/(tabs)");
     }
   }, [ready, isDesignPreview, user, gate, segments, router]);
 
@@ -52,12 +51,11 @@ function GatedSlot() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Newsreader_400Regular_Italic,
-    Newsreader_500Medium,
-    Newsreader_600SemiBold,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
+    Figtree_400Regular,
+    Figtree_500Medium,
+    Figtree_600SemiBold,
   });
 
   // If fonts fail to load, carry on with the system fonts rather than block.

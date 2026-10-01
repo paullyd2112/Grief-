@@ -139,16 +139,67 @@ anything they'd rather not discuss. Like the rest of intake, only the operator
 sees them, for matching; the match does not. The screen says so and suggests
 telling the match directly.
 
+### D20. Password sign-in
+**Decided.** Members can sign in with an email code or a password. Accounts
+are still created with a code, which proves the member owns the address; a
+password is optional and set in Settings > Password. Signing in with a code
+always works, so it doubles as "forgot password". Minimum 8 characters.
+
+### D21. Exceptional access for legal or safety reasons
+**Decided.** Ndo may read an unreported conversation when the law or someone's
+safety requires it. The admin console is unchanged (still no way to open
+unreported conversations); the founder does it directly in the database and
+logs it in `access_log` first. The user-facing promise now says "or the law or
+someone's safety requires it". See ACCESS_POLICY.md, "Exceptional access".
+
+### D22. Staying signed in
+**Decided.** Members sign in once (email code, or password once set) and stay
+signed in, like Instagram or Snapchat. Sessions persist in the Keychain and
+refresh when the app returns to the foreground. Supabase's session time-box
+and inactivity timeout must stay off.
+
+### D23. Photos and videos in conversations
+**Decided.** Members can send photos and videos inside a conversation, with a
+caption: sharing a photo of the person you lost is often the point, and it
+keeps people from moving to Instagram to do it. No profile photos, and nothing
+to browse.
+- Unlocked once both people have sent a message, so nothing arrives as an
+  opening move.
+- Up to 10 per message; videos up to 60 seconds at 720p; photos resized to
+  2048px and re-encoded, which strips location data.
+- Received photos and videos show as "Tap to view" (a one-time note explains
+  why: seeing a late parent's photo unexpectedly can hit hard). Settings can
+  show them right away instead.
+- The sender chooses per batch whether the other person may save them. Off
+  by default. Screenshots are still possible and the app says so.
+- Same access rule as messages; reports copy them for operators (see
+  ACCESS_POLICY.md). Sending sexual or explicit images is a permanent ban.
+
+### D24. Unsend
+**Decided.** Senders can unsend photos, videos and voice memos (not text).
+They're removed for both people; both see "unsent". A copy already taken by a
+report stays. Known trade-off: someone could send something abusive and unsend
+it before it's reported. The unsent row, its time and its kind stay in the
+conversation and in any report snapshot, so the pattern is still visible.
+
+### D25. Daily caps and voice memo length (was O3)
+**Decided.** 50 photos and videos and 50 voice memos per member per day.
+Voice memos up to 5 minutes: shorter caps push people to move off the app.
+
+### D26. Push notifications
+**Decided.** The database sends them through Expo's push service (pg_net, like
+the operator alerts). They say only that something arrived, never what: "New
+message from Maya", "You've been matched with someone", "Checking in on you".
+The app asks permission after intake ("we'll let you know when you're
+matched"), shows no banner for the conversation you're already in, opens the
+conversation when tapped, and removes the phone's token on sign-out.
+
 ---
 
 ## Open
 
 ### O2. Geography / timezone in matching
 Matters less for async voice than live calls. Currently collected but unused.
-
-### O3. Voice memo length cap
-Placeholder: 5 minutes. Needs a real answer once memos exist — it trades depth
-against moderation load.
 
 ### O4. Hardened admin database role
 Upgrade path from ACCESS_POLICY.md: dedicated Postgres role with `SELECT`

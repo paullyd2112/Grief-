@@ -42,6 +42,20 @@ export function useMessages(conversationId: string | undefined) {
           });
         }
       )
+      // Unsending updates the row in place; show it for both people at once.
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Message;
+          setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+        }
+      )
       .subscribe();
 
     channelRef.current = channel;
@@ -68,5 +82,16 @@ export function useMessages(conversationId: string | undefined) {
     [conversationId]
   );
 
-  return { messages, loading, sendMessage };
+  // Reflect an unsend straight away, before the live update arrives.
+  const markUnsent = useCallback((messageId: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, unsent_at: new Date().toISOString(), body: null, voice_memo_id: null }
+          : m
+      )
+    );
+  }, []);
+
+  return { messages, loading, sendMessage, markUnsent };
 }

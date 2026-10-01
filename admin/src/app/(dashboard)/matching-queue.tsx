@@ -112,7 +112,7 @@ export function MatchingQueue({
           {selectedIntakes.map((intake) => (
             <div
               key={intake.id}
-              className="border border-stone-200 rounded-xl p-4 bg-white"
+              className="border border-stone-200 rounded-xl p-4 bg-stone-50"
             >
               <div className="font-semibold text-stone-900 mb-2">
                 {intake.profiles.display_name}
@@ -199,7 +199,7 @@ export function MatchingQueue({
               <button
                 onClick={handleMatch}
                 disabled={isPending}
-                className="w-full bg-stone-900 text-white rounded-lg py-3 font-medium hover:bg-stone-800 disabled:opacity-50 transition"
+                className="w-full bg-accent text-white rounded-lg py-3 font-medium hover:bg-stone-800 disabled:opacity-50 transition"
               >
                 {isPending ? "Creating match…" : "Create match"}
               </button>

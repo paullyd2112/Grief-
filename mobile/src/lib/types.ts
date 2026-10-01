@@ -35,7 +35,7 @@ export type TalkFrequency =
 
 export type AccountStatus = "active" | "paused" | "suspended" | "deleted";
 
-export type MessageKind = "text" | "voice";
+export type MessageKind = "text" | "voice" | "media";
 
 export type MatchEndKind =
   | "left"
@@ -100,6 +100,27 @@ export interface Message {
   kind: MessageKind;
   body: string | null;
   voice_memo_id: string | null;
+  // Photos and videos: whether the sender lets the other person save them.
+  allow_save: boolean;
+  // Set when the sender unsent a photo, video or voice memo. The row stays,
+  // its content is gone for both people.
+  unsent_at: string | null;
+  created_at: string;
+}
+
+export type AttachmentKind = "photo" | "video";
+
+export interface Attachment {
+  id: string;
+  message_id: string;
+  conversation_id: string;
+  sender_id: string;
+  kind: AttachmentKind;
+  storage_path: string;
+  width: number | null;
+  height: number | null;
+  duration_ms: number | null;
+  position: number;
   created_at: string;
 }
 

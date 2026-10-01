@@ -78,7 +78,7 @@ function LoginForm() {
             <button
               onClick={handleSendOtp}
               disabled={loading || !email.trim()}
-              className="w-full bg-stone-900 text-white rounded-lg py-3 font-medium hover:bg-stone-800 disabled:opacity-50 transition"
+              className="w-full bg-accent text-white rounded-lg py-3 font-medium hover:bg-stone-800 disabled:opacity-50 transition"
             >
               {loading ? "Sending…" : "Continue"}
             </button>
@@ -100,7 +100,7 @@ function LoginForm() {
             <button
               onClick={handleVerify}
               disabled={loading || !otp.trim()}
-              className="w-full bg-stone-900 text-white rounded-lg py-3 font-medium hover:bg-stone-800 disabled:opacity-50 transition"
+              className="w-full bg-accent text-white rounded-lg py-3 font-medium hover:bg-stone-800 disabled:opacity-50 transition"
             >
               {loading ? "Verifying…" : "Verify"}
             </button>

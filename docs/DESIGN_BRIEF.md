@@ -26,12 +26,14 @@ calmer and warmer: dignified, never clinical, never playful like a dating app.
 Put tokens in `mobile/src/theme.ts` and build shared components before touching
 screens.
 
-- **Color:** warm off-white background and warm near-black text. One accent, a
-  deep muted blue, replacing the stock `#3B82F6`. Own chat bubbles in the
+- **Color:** warm off-white background and warm near-black text. One accent, replacing
+  the stock `#3B82F6`. (Decided: plum `#46304B`, not blue; see
+  `docs/redesign/README.md`.) Own chat bubbles in the
   accent, theirs in warm grey. Red only for "Yes, right now". Plan for dark
   mode.
-- **Type:** a serif for headings (e.g. Newsreader, Fraunces or Source Serif) and
-  a clean sans for body text. Define a clear size scale.
+- **Type:** a serif for headings and a clean sans for body text. Define a
+  clear size scale. (Decided: Instrument Serif and Figtree; see
+  `docs/redesign/README.md`.)
 - **Spacing and shape:** a 4pt grid and consistent corner radii (cards,
   bubbles, pills).
 - **Icons:** one icon set (SF Symbols via `expo-symbols`). No emoji. Replace the

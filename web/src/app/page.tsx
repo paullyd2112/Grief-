@@ -1,15 +1,12 @@
 import Image from "next/image";
-import Link from "next/link";
 import { IPhone } from "@/components/IPhone";
+import { GetTheApp, SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import appHome from "../../public/app-home.png";
 import appHomeDark from "../../public/app-home-dark.png";
 
-const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || null;
-const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || null;
-
 // The privacy promise exactly as docs/ACCESS_POLICY.md words it for users.
 const PROMISE =
-  "Your conversations are encrypted in transit and at rest. Nobody at Ndo reads them unless you or the person you're talking to reports a message. When that happens, only the reported message and a little context around it are sent to us. Every time someone at Ndo looks at your information, it's logged, and you can ask to see that log.";
+  "Your conversations are encrypted in transit and at rest. Nobody at Ndo reads them unless you or the person you're talking to reports a message, or the law or someone's safety requires it. When a message is reported, only the reported message and a little context around it are sent to us. Every time someone at Ndo looks at your information, it's logged, and you can ask to see that log.";
 
 const steps = [
   {
@@ -45,53 +42,10 @@ const principles = [
   },
 ];
 
-// Apple's official "Download on the App Store" badge (from Apple's marketing
-// tools; don't redraw or alter it). Black on light pages, white on dark.
-// Until the listing exists it isn't a link and carries a "Coming soon" note;
-// set NEXT_PUBLIC_APP_STORE_URL and it links straight to the App Store.
-function AppStoreBadge({ size = "large" }: { size?: "large" | "small" }) {
-  const badge = (
-    <span className={`badge badge-${size}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="only-light" src="/app-store-badge-black.svg" alt="Download on the App Store" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="only-dark" src="/app-store-badge-white.svg" alt="Download on the App Store" />
-    </span>
-  );
-  if (APP_STORE_URL) {
-    return <a href={APP_STORE_URL}>{badge}</a>;
-  }
-  return badge;
-}
-
-function GetTheApp() {
-  return (
-    <div className="cta">
-      <AppStoreBadge />
-      {!APP_STORE_URL && <span className="cta-note">Coming soon</span>}
-    </div>
-  );
-}
-
 export default function Home() {
   return (
     <>
-      <a className="skip" href="#main">
-        Skip to content
-      </a>
-
-      <header className="header">
-        <div className="wrap header-inner">
-          <Link className="wordmark" href="/" aria-label="Ndo home">
-            Ndo
-          </Link>
-          <nav className="header-links" aria-label="Page">
-            <a href="#how">How it works</a>
-            <a href="#crisis">Crisis help</a>
-            <AppStoreBadge size="small" />
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main id="main">
         <section className="wrap hero">
@@ -214,18 +168,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="wrap footer">
-        <div className="footer-brand">
-          <span className="wordmark">Ndo</span>
-          <p>Peer support for grief. Matched by hand.</p>
-        </div>
-        <nav className="footer-links" aria-label="Footer">
-          <a href="#how">How it works</a>
-          <a href="#crisis">Crisis help</a>
-          {SUPPORT_EMAIL && <a href={`mailto:${SUPPORT_EMAIL}`}>Contact</a>}
-        </nav>
-        <p className="footer-legal">© {new Date().getFullYear()} Ndo</p>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

@@ -1,21 +1,38 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-const BUCKET = "voice-memos";
+// Conversation files live at '<conversation_id>/<file>' in both buckets.
+const CONVERSATION_BUCKETS = ["voice-memos", "attachments"];
+const REPORTED_MEDIA_BUCKET = "reported-media";
 const ACCOUNT_GRACE_DAYS = 30;
-// Runs daily, so a week of retries for any audio a client failed to remove.
-const AUDIO_SWEEP_DAYS = 7;
+// Runs daily, so a week of retries for any files a client failed to remove.
+const FILE_SWEEP_DAYS = 7;
 const DAY_MS = 86_400_000;
 
-async function removeConversationAudio(supabase: SupabaseClient, conversationId: string) {
-  const bucket = supabase.storage.from(BUCKET);
-  const { data: files, error } = await bucket.list(conversationId, { limit: 1000 });
-  if (error) throw error;
-  if (files.length === 0) return;
-  const { error: removeError } = await bucket.remove(
-    files.map((f) => `${conversationId}/${f.name}`)
-  );
-  if (removeError) throw removeError;
+async function removeConversationFiles(supabase: SupabaseClient, conversationId: string) {
+  for (const name of CONVERSATION_BUCKETS) {
+    const bucket = supabase.storage.from(name);
+    const { data: files, error } = await bucket.list(conversationId, { limit: 1000 });
+    if (error) throw error;
+    if (files.length === 0) continue;
+    const { error: removeError } = await bucket.remove(
+      files.map((f) => `${conversationId}/${f.name}`)
+    );
+    if (removeError) throw removeError;
+  }
+}
+
+// Paths of the photo and video copies a report's snapshot points to.
+function reportedMediaPaths(snapshot: unknown): string[] {
+  const messages = (snapshot as { messages?: unknown[] } | null)?.messages;
+  if (!Array.isArray(messages)) return [];
+  return messages.flatMap((m) => {
+    const attachments = (m as { attachments?: unknown[] }).attachments;
+    if (!Array.isArray(attachments)) return [];
+    return attachments
+      .map((a) => (a as { report_path?: unknown }).report_path)
+      .filter((p): p is string => typeof p === "string");
+  });
 }
 
 function describe(e: unknown) {
@@ -35,7 +52,22 @@ export async function GET(request: Request) {
   );
   const errors: string[] = [];
 
-  // 1. Reports past their 90 days.
+  // 1. Reports past their 90 days. Their photo and video copies go first,
+  //    while the snapshot still says where they are.
+  const { data: expiring, error: expiringError } = await supabase
+    .from("reports")
+    .select("snapshot")
+    .eq("legal_hold", false)
+    .lte("purge_after", new Date().toISOString());
+  if (expiringError) errors.push(`list expiring reports: ${expiringError.message}`);
+  const expiringMedia = (expiring ?? []).flatMap((r) => reportedMediaPaths(r.snapshot));
+  for (let i = 0; i < expiringMedia.length; i += 100) {
+    const { error } = await supabase.storage
+      .from(REPORTED_MEDIA_BUCKET)
+      .remove(expiringMedia.slice(i, i + 100));
+    if (error) errors.push(`remove reported media: ${error.message}`);
+  }
+
   const { data: purgedReports, error: purgeError } = await supabase.rpc(
     "purge_expired_reports"
   );
@@ -46,25 +78,44 @@ export async function GET(request: Request) {
   );
   if (concernError) errors.push(`purge_expired_concerns: ${concernError.message}`);
 
-  // 2. Audio left behind by recently deleted conversations.
+  // 2. Files from unsent photos, videos and voice memos the sender's app
+  //    didn't manage to remove.
+  let clearedTrash = 0;
+  const { data: trash, error: trashError } = await supabase.rpc("list_storage_trash");
+  if (trashError) errors.push(`list_storage_trash: ${trashError.message}`);
+  const trashRows = (trash ?? []) as { id: number; bucket: string; path: string }[];
+  const cleared: number[] = [];
+  for (const name of new Set(trashRows.map((r) => r.bucket))) {
+    const rows = trashRows.filter((r) => r.bucket === name);
+    const { error } = await supabase.storage.from(name).remove(rows.map((r) => r.path));
+    if (error) errors.push(`empty trash (${name}): ${error.message}`);
+    else cleared.push(...rows.map((r) => r.id));
+  }
+  if (cleared.length > 0) {
+    const { error } = await supabase.rpc("clear_storage_trash", { ids: cleared });
+    if (error) errors.push(`clear_storage_trash: ${error.message}`);
+    else clearedTrash = cleared.length;
+  }
+
+  // 3. Audio, photos and videos left behind by recently deleted conversations.
   let sweptConversations = 0;
   const { data: deletedConvs, error: convError } = await supabase
     .from("conversations")
     .select("id")
-    .gte("deleted_at", new Date(Date.now() - AUDIO_SWEEP_DAYS * DAY_MS).toISOString());
+    .gte("deleted_at", new Date(Date.now() - FILE_SWEEP_DAYS * DAY_MS).toISOString());
   if (convError) errors.push(`list deleted conversations: ${convError.message}`);
   for (const conv of deletedConvs ?? []) {
     try {
-      await removeConversationAudio(supabase, conv.id);
+      await removeConversationFiles(supabase, conv.id);
       sweptConversations++;
     } catch (e) {
       errors.push(`sweep ${conv.id}: ${describe(e)}`);
     }
   }
 
-  // 3. Accounts past the 30-day grace period. Deleting the auth user cascades
-  //    through everything in Postgres; audio and voice_memos rows don't
-  //    cascade, so they go first. Any failure leaves the account for tomorrow.
+  // 4. Accounts past the 30-day grace period. Deleting the auth user cascades
+  //    through everything in Postgres (attachments included); files in
+  //    storage and voice_memos rows don't cascade, so they go first. Any failure leaves the account for tomorrow.
   let deletedAccounts = 0;
   const { data: dueAccounts, error: dueError } = await supabase
     .from("profiles")
@@ -81,7 +132,7 @@ export async function GET(request: Request) {
       const conversationIds = (seats ?? []).map((s) => s.conversation_id);
 
       for (const id of conversationIds) {
-        await removeConversationAudio(supabase, id);
+        await removeConversationFiles(supabase, id);
       }
 
       if (conversationIds.length > 0) {
@@ -110,7 +161,14 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json(
-    { purgedReports, purgedConcerns, sweptConversations, deletedAccounts, errors },
+    {
+      purgedReports,
+      purgedConcerns,
+      clearedTrash,
+      sweptConversations,
+      deletedAccounts,
+      errors,
+    },
     { status: errors.length ? 500 : 200 }
   );
 }

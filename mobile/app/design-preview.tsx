@@ -2,7 +2,7 @@
 // with sample data so they can be screenshotted for review before the real
 // screens change. Development builds only (see app/_layout.tsx).
 //
-//   /design-preview?state=new | waiting | active | support | components
+//   /design-preview?state=new | waiting | active | support | chat | worried | components
 //                  &accent=ink | spruce | plum
 
 import { useState } from "react";
@@ -18,6 +18,16 @@ import {
   OnboardingProgress,
   WaitingState,
 } from "../src/components/home/HomeBlocks";
+import {
+  DaySeparator,
+  TextBubble,
+  UnsentLine,
+  buildChatItems,
+  groupSpacing,
+} from "../src/components/chat/ChatParts";
+import { MediaBubble } from "../src/components/MediaBubble";
+import { WorriedSheet } from "../src/components/WorriedSheet";
+import type { Message } from "../src/lib/types";
 import {
   Avatar,
   BottomSheet,
@@ -43,7 +53,7 @@ import {
   type AccentName,
 } from "../src/theme";
 
-type PreviewState = "new" | "waiting" | "active" | "support" | "components";
+type PreviewState = "new" | "waiting" | "active" | "support" | "chat" | "worried" | "components";
 
 const conversations = [
   {
@@ -104,9 +114,24 @@ function PreviewScreen() {
       <ScrollView
         contentContainerStyle={{ paddingTop: insets.top + space.sm, paddingBottom: space.xxl }}
       >
-        {state === "components" ? <ComponentKit /> : <HomeMock state={state} />}
+        {state === "components" ? (
+          <ComponentKit />
+        ) : state === "chat" || state === "worried" ? (
+          <ChatMock />
+        ) : (
+          <HomeMock state={state} />
+        )}
       </ScrollView>
-      {state !== "components" && <TabBarMock />}
+      {(state === "chat" || state === "worried") && <ComposerMock />}
+      {state !== "components" && state !== "chat" && state !== "worried" && <TabBarMock />}
+      <WorriedSheet
+        visible={state === "worried"}
+        partnerName="Maya"
+        conversationId="preview"
+        canMessage
+        onClose={() => {}}
+        onAddToMessage={() => {}}
+      />
     </View>
   );
 }
@@ -147,6 +172,123 @@ function HomeMock({ state }: { state: PreviewState }) {
         </ListSection>
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Conversation screen sample: day separators, grouped bubbles, a photo card
+// and an unsent line.
+// ---------------------------------------------------------------------------
+
+const ME = "me-sample";
+const MAYA = "7f3a9c21-sample-maya";
+
+function sampleMessages(): Message[] {
+  const now = new Date();
+  const at = (daysAgo: number, h: number, m: number) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - daysAgo);
+    d.setHours(h, m, 0, 0);
+    return d.toISOString();
+  };
+  const msg = (
+    id: string,
+    sender: string,
+    created_at: string,
+    body: string | null,
+    extra: Partial<Message> = {}
+  ): Message => ({
+    id,
+    conversation_id: "sample",
+    sender_id: sender,
+    kind: "text",
+    body,
+    voice_memo_id: null,
+    allow_save: false,
+    unsent_at: null,
+    created_at,
+    ...extra,
+  });
+  // Oldest first here; the screen's list is newest first.
+  return [
+    msg("1", MAYA, at(2, 21, 12), "I keep setting two mugs out in the morning."),
+    msg("2", MAYA, at(2, 21, 12), "Three months and my hands still do it."),
+    msg("3", ME, at(2, 21, 30), "I did that with his coat for a long time. I'd reach for it by the door."),
+    msg("4", ME, at(2, 21, 31), "It doesn't mean you're stuck. It means it mattered."),
+    msg("5", MAYA, at(0, 9, 38), "This is him at the lake, the summer before.", { kind: "media" }),
+    msg("6", MAYA, at(0, 9, 41), "Thank you for saying that. Sundays are the hardest for me too."),
+    msg("7", ME, at(0, 9, 52), null, { kind: "voice", unsent_at: at(0, 9, 53) }),
+  ].reverse();
+}
+
+function ChatMock() {
+  const { color } = useTheme();
+  const items = buildChatItems(sampleMessages()).reverse();
+  const noop = () => {};
+  return (
+    <View>
+      <View style={[styles.chatHeader, { borderBottomColor: color.hairline }]}>
+        <Avatar seed={MAYA} name="Maya" size={28} />
+        <Text variant="headline" style={{ flex: 1 }}>
+          Maya
+        </Text>
+        <Text variant="subhead" color="textSecondary">
+          Get help
+        </Text>
+        <Icon name="more" size={22} color={color.text} />
+      </View>
+      <View style={styles.chatBody}>
+        {items.map((item) =>
+          item.type === "separator" ? (
+            <DaySeparator key={item.key} label={item.label} />
+          ) : (
+            <View key={item.key} style={groupSpacing(item.groupStart)}>
+              {item.message.kind === "media" ? (
+                <MediaBubble
+                  message={item.message}
+                  isOwn={false}
+                  partnerName="Maya"
+                  showRightAway={false}
+                  showExplainer
+                  onRevealed={noop}
+                  onLongPress={noop}
+                />
+              ) : item.message.unsent_at ? (
+                <UnsentLine isOwn text="You unsent a voice memo" />
+              ) : (
+                <TextBubble
+                  message={item.message}
+                  isOwn={item.message.sender_id === ME}
+                  groupEnd={item.groupEnd}
+                  showTime={item.message.id === "6"}
+                />
+              )}
+            </View>
+          )
+        )}
+      </View>
+    </View>
+  );
+}
+
+function ComposerMock() {
+  const { color } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      style={[
+        styles.composerMock,
+        { borderTopColor: color.hairline, paddingBottom: insets.bottom + space.md },
+      ]}
+    >
+      <Icon name="plus" size={22} color={color.textSecondary} />
+      <View style={[styles.inputMock, { backgroundColor: color.surfaceSunken }]}>
+        <Text variant="body" color="textTertiary">
+          Message
+        </Text>
+      </View>
+      <Icon name="mic" size={22} color={color.textSecondary} />
+    </View>
   );
 }
 
@@ -195,9 +337,9 @@ function ComponentKit() {
         <Text variant="display">Ndo</Text>
         <Text variant="title1">Title one, in serif</Text>
         <Text variant="title3">Title three, in serif</Text>
-        <Text variant="headline">Headline in Inter</Text>
+        <Text variant="headline">Headline in Figtree</Text>
         <Text variant="body">
-          Body text is Inter at 17pt, set loosely so long messages stay easy to read.
+          Body text is Figtree at 17pt, set loosely so long messages stay easy to read.
         </Text>
         <Text variant="footnote" color="textTertiary">
           Footnote for timestamps and hints
@@ -335,6 +477,24 @@ function Section({
 }
 
 const styles = StyleSheet.create({
+  chatHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingBottom: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  chatBody: { paddingHorizontal: space.lg, paddingBottom: space.lg },
+  composerMock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingTop: space.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  inputMock: { flex: 1, borderRadius: 20, paddingHorizontal: space.lg, paddingVertical: 9 },
   screen: {
     flex: 1,
   },
