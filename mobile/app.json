@@ -9,7 +9,11 @@
     "scheme": "ndo",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.ndo.app"
+      "bundleIdentifier": "com.ndo.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +31,14 @@
       "expo-router",
       "expo-secure-store",
       "expo-splash-screen",
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Ndo uses the microphone so you can record voice memos to the person you're matched with. Recording only happens while you hold the record button.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ]
     ]
   }
 }

@@ -7,11 +7,13 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../src/hooks/useAuth";
 import { useProfile } from "../../src/hooks/useProfile";
 import { supabase } from "../../src/lib/supabase";
+import { PRIVACY_POLICY_URL, TERMS_URL } from "../../src/lib/config";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
@@ -173,6 +175,26 @@ export default function SettingsScreen() {
         <Text style={styles.linkText}>Your data</Text>
         <Text style={styles.linkArrow}>›</Text>
       </TouchableOpacity>
+
+      {PRIVACY_POLICY_URL && (
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+        >
+          <Text style={styles.linkText}>Privacy policy</Text>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
+      )}
+
+      {TERMS_URL && (
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => Linking.openURL(TERMS_URL)}
+        >
+          <Text style={styles.linkText}>Terms of service</Text>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity
         style={styles.dangerButton}
